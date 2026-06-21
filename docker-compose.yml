@@ -1,0 +1,33 @@
+services:
+  api:
+    build: .
+    ports:
+      - 8000:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_HOST: postgres
+      SECRET_KEY: ${SECRET_KEY}
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    volumes:
+      - db_dashboard:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+
+volumes:
+  db_dashboard:
