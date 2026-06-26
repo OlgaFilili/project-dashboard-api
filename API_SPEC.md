@@ -7,35 +7,36 @@
 - Participant access is granted by project owner through the invite endpoint.
 
 ## Endpoints
-Method | Path | Description
-POST | /auth | Create user (login, password, repeat password)
-POST | /login | Login into service (login, password)
-POST | /projects | Create project from details (name, description). Automatically gives access to created project to user, making him the owner (project's admin)
-GET | /projects | Get all projects, accessible for a user. Returns list of projects full info(details + documents)
-GET | /project/{project_id}/info | Return project’s details, if user has access
-PUT | /project/{project_id}/info | Update projects details - name, description. Returns the updated project’s info
-DELETE | /project/{project_id} | Delete project, can only be performed by the projects’ owner. Deletes the corresponding  documents
-GET | /project/{project_id}/documents | Return all the project's documents
-POST | /project/{project_id}/documents | Upload document/documents for a specific project
-GET | /document/{document_id} | Download document, if the user has access to the corresponding project
-PUT | /document/{document_id} | Update document
-DELETE | /document/{document_id} | Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3).
-POST | /project/{project_id}/invite?user={login} | Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user.
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /auth | Create user (login, password, repeat password) |
+| POST | /login | Login into service (login, password) |
+| POST | /projects | Create project from details (name, description). Automatically gives access to created project to user, making him the owner (project's admin) |
+| GET | /projects | Get all projects, accessible for a user. Returns list of projects full info(details + documents) |
+| GET | /project/{project_id}/info | Return project’s details, if user has access |
+| PUT | /project/{project_id}/info | Update projects details - name, description. Returns the updated project’s info |
+| DELETE | /project/{project_id} | Delete project, can only be performed by the projects’ owner. Deletes the corresponding  documents |
+| GET | /project/{project_id}/documents | Return all the project's documents |
+| POST | /project/{project_id}/documents | Upload document/documents for a specific project |
+| GET | /document/{document_id} | Download document, if the user has access to the corresponding project |
+| PUT | /document/{document_id} | Update document |
+| DELETE | /document/{document_id} | Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3) |
+| POST | /project/{project_id}/invite?user={login} | Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user |
 
 ## API Contracts
 1. POST /auth
 
 Request:
 {
-  "username": "Olga",
+  "login": "Olga",
   "password": "password",
-  "verifyPassword": "password"
+  "repeat_password": "password"
 }
 Response: 201 Created
 {
-  "id": 1, 
-  "username": "Olga", 
-  "createdAt": "2026-06-18T15:32:29Z"
+  "user_id": 1, 
+  "login": "Olga", 
+  "created_at": "2026-06-18T15:32:29Z"
 }
 Errors:
 422 Unprocessable Entity - Username is required.
@@ -48,12 +49,12 @@ Errors:
 
 Request: 
 {
-  "username": "Olga",
+  "login": "Olga",
   "password": "password"
 }
 Response: 200 OK
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIs..."
+  "access_token": "eyJhbGciOiJIUzI1NiIs..."
 }
 Errors:
 401 Unauthorized - Invalid credentials.
@@ -62,7 +63,7 @@ Errors:
 3. POST /projects
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Request:
 {
@@ -72,10 +73,10 @@ Request:
 
 Response: 201 Created
 {
-  "id": 1, 
-  "ownerId": 1, 
+  "project_id": 1, 
   "name": "Project’s name", 
-  "createdAt": "2026-06-18T16:22:56Z"
+  "created_at": "2026-06-18T16:22:56Z"
+  "owner_id": 1
 }
 
 Errors:
@@ -86,23 +87,23 @@ Errors:
 4. GET /projects
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Response: 200 OK
 {
   "projects":[
     {
-      "id": 1,
+      "project_id": 1,
       "name": "Project’s name",
       "description": "Project’s description",
-      "owner": "Olga",
-      "createdAt": "2026-06-18T16:22:56Z",
+      "created_at": "2026-06-18T16:22:56Z",
+	  "owner_id": 1,
       "documents": [
 		{
-		  "id": 15,
+		  "document_id": 15,
 		  "filename": "report.pdf",
 		  "size": 2048,
-		  "uploadedAt": "2026-06-19T12:38:19Z"
+		  "uploaded_at": "2026-06-19T12:38:19Z"
 		}
 	  ]
     }
@@ -116,15 +117,15 @@ Errors:
 5. GET /project/{project_id}/info
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Response: 200 OK
 {
-  "id": <project_id>,
+  "project_id": <project_id>,
   "name": "Project’s name",
   "description": "Project’s description",
-  "owner": "Olga",
-  "createdAt": "2026-06-18T16:22:56Z",
+  "created_at": "2026-06-18T16:22:56Z",
+  "owner_id": 1
 }
 
 Errors:
@@ -136,7 +137,7 @@ Errors:
 6. PUT /project/{project_id}/info
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Request:
 {
@@ -151,11 +152,11 @@ or both fields.
 
 Response: 200 OK
 {
-  "id": <project_id>,
+  "project_id": <project_id>,
   "name": "New project’s name",
   "description": "New project’s description",
-  "owner": "Olga",
-  "createdAt": "2026-06-18T16:22:56Z",
+  "created_at": "2026-06-18T16:22:56Z",
+  "owner_id": 1
 }
 
 Errors:
@@ -167,7 +168,7 @@ Errors:
 7. DELETE /project/{project_id}
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Response: 204 No Content
 
@@ -179,16 +180,16 @@ Errors:
 8. GET /project/{project_id}/documents
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Response: 200 OK
 {
   "documents": [
 	{
-	  "id": 15,
+	  "document_id": 15,
 	  "filename": "report.pdf",
 	  "size": 2048,
-	  "uploadedAt": "2026-06-19T12:38:19Z"
+	  "uploaded_at": "2026-06-19T12:38:19Z"
 	}
   ]
 }
@@ -201,7 +202,7 @@ Errors:
 9. POST /project/{project_id}/documents
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Content-Type: multipart/form-data
 files: spec.pdf
@@ -215,16 +216,16 @@ Response: 201 Created
 {
   "documents": [
     {
-	  "id": 2, 
+	  "document_id": 2, 
 	  "filename": "spec.pdf",
 	  "size": 2048
-	  "uploadedAt": "2026-06-19T17:16:23Z"
+	  "uploaded_at": "2026-06-19T17:16:23Z"
     },
 	{
-	  "id": 3, 
+	  "document_id": 3, 
 	  "filename": "spec.pdf",
 	  "size": 8192
-	  "uploadedAt": "2026-06-19T17:16:57Z"
+	  "uploaded_at": "2026-06-19T17:16:57Z"
     }
   ]
 }
@@ -238,7 +239,7 @@ Errors:
 10. GET /document/{document_id} - Download document, if the user has access to the corresponding project
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Response: 200 Ok
 Binary stream
@@ -253,7 +254,7 @@ Errors:
 11. PUT /document/{document_id} - Update document
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Content-Type: multipart/form-data
 files: spec.pdf
@@ -263,10 +264,10 @@ Constraints:
 
 Response: 200 OK
 {
-  "id": <document_id>, 
+  "document_id": <document_id>, 
   "filename": "spec_new.pdf",
   "size": 4096
-  "uploadedAt": "2026-06-19T18:08:37Z"
+  "uploaded_at": "2026-06-19T18:08:37Z"
 }
 
 Errors:
@@ -277,7 +278,7 @@ Errors:
 12. DELETE /document/{document_id}
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Response: 204 No Content
 
@@ -287,14 +288,14 @@ Errors:
 404 Not Found - Document not found.
 
 
-13. POST /project/{project_id}/invite?user={login} - Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user.
+13. POST /project/{project_id}/invite - Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user.
 
 Authorization header:
-Bearer <accessToken>
+Bearer <access_token>
 
 Request:
 {
-  "username": "<login>", 
+  "login": "Olga"
 }
 
 Response: 204 No Content
