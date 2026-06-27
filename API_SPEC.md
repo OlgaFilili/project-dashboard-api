@@ -21,7 +21,7 @@
 | GET | /document/{document_id} | Download document, if the user has access to the corresponding project |
 | PUT | /document/{document_id} | Update document |
 | DELETE | /document/{document_id} | Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3) |
-| POST | /project/{project_id}/invite?user={login} | Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user |
+| POST | /project/{project_id}/invite | Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user |
 
 ## API Contracts
 1. POST /auth

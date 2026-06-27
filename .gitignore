@@ -1,0 +1,22 @@
+# Virtual environment
+.venv/
+
+# Environment
+.env
+
+# IDE
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Logs
+logs/
+*.log
+
+# Local working directory
+unsorted/
+
+# Backups
+*.bak
