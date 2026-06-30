@@ -1,5 +1,9 @@
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 CONNECTION_STRING = (
     f"postgresql+asyncpg://{os.getenv('DATABASE_USER')}:"
     f"{os.getenv('DATABASE_PASSWORD')}@"

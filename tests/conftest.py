@@ -2,10 +2,10 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock
 
-from database.models import Project
+from database.models import Project, User
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_project():
     return Project(
         id=2,
@@ -16,7 +16,7 @@ def sample_project():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def project_factory():
     def make_project(**kwargs):
         data = {
@@ -34,3 +34,12 @@ def project_factory():
 @pytest.fixture
 def session():
     return AsyncMock()
+
+@pytest.fixture
+def sample_user():
+    return User(
+        id=1,
+        username="Olga",
+        password_hash="fake_hash",
+        created_at=datetime(2026, 6, 1, 10, 0, 0)
+    )
