@@ -17,5 +17,14 @@ class NoAccessError(ServiceError):
 class ProjectNotFoundError(ServiceError):
     pass
 
+
 class UserNotOwnerError(ServiceError):
+    pass
+
+
+class InvalidCredentialsError(ServiceError):
+    pass
+
+
+class UnauthorizedError(ServiceError):
     pass

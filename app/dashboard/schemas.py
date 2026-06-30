@@ -21,6 +21,11 @@ class UserRegister(APIModel):
     repeat_password: str = Field(min_length=1)
 
 
+class UserLogin(APIModel):
+    login: str = Field(min_length=1)
+    password: str = Field(min_length=1)
+
+
 class UserResponse(APIModel):
     user_id: int
     login: str

@@ -1,23 +1,41 @@
+import jwt
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, Request, Response
+from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
+from config.config import SECRET_KEY
 from database.db import get_session
 from database.models import User, Project
 from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, ProjectNotFoundError, \
-    NoAccessError, UserNotOwnerError
+    NoAccessError, UserNotOwnerError, InvalidCredentialsError, UnauthorizedError
 from app.dashboard.schemas import UserRegister, UserResponse, ProjectResponse, ProjectCreate, ProjectInfo, UserProjects, \
-    ProjectUpdate
+    ProjectUpdate, UserLogin
 from app.dashboard.repository import select_user_by_username, select_user_by_id, add_new_user, add_new_project, \
     get_owned_projects, get_participant_projects, select_project_by_id, select_members_by_project_id
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
+def verify_password(password: str, hashed: str) -> bool:
+    return pwd_context.verify(password, hashed)
+
+async def get_current_user(token: str = Depends(oauth2_scheme), async_session: AsyncSession = Depends(get_session)) -> User:
+    try:
+        token_decode = jwt.decode(token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": True})
+    except jwt.ExpiredSignatureError:
+        raise UnauthorizedError()
+    except jwt.InvalidTokenError:
+        raise UnauthorizedError()
+    user = await select_user_by_id(async_session, token_decode["user_id"])
+    if not user:
+        raise UnauthorizedError()
+    return user
 
 async def insert_user(session: AsyncSession, user_data: UserRegister) -> UserResponse:
     if user_data.password != user_data.repeat_password:
@@ -28,10 +46,21 @@ async def insert_user(session: AsyncSession, user_data: UserRegister) -> UserRes
     hashed_password = hash_password(user_data.password)
     new_user = User(
         username=user_data.login,
-        password_hash=hashed_password
-    )
+        password_hash=hashed_password)
     new_user = await add_new_user(session, new_user)
     return UserResponse(user_id=new_user.id, login=new_user.username, created_at=new_user.created_at)
+
+async def get_token(session: AsyncSession, creds: UserLogin) -> str:
+    user = await select_user_by_username(session, creds.login)
+    if not user:
+        raise InvalidCredentialsError()
+    if not verify_password(creds.password, user.password_hash):
+        raise InvalidCredentialsError()
+    token = jwt.encode(
+        {"user_id": user.id, "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+        SECRET_KEY,
+        algorithm="HS256")
+    return token
 
 
 async def insert_project(session: AsyncSession, project_data: ProjectCreate, owner_id: int) -> ProjectResponse:
@@ -94,12 +123,3 @@ async def del_project(session: AsyncSession, user_id: int, project_id: int) -> N
     project = await get_project_for_owner(session, user_id, project_id)
     await session.delete(project)
     await session.commit()
-
-
-def verify_password(password: str, hashed: str) -> bool:
-    return pwd_context.verify(password, hashed)
-
-
-async def get_current_user(request: Request, async_session: AsyncSession = Depends(get_session)) -> User | None:
-    user = await select_user_by_id(async_session, token["user_id"])
-    return user
