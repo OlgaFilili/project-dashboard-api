@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.db import get_session
-from app.dashboard.exceptions import NoAccessError, ProjectNotFoundError, UserNotOwnerError
+from app.dashboard.exceptions import NoAccessError, ProjectNotFoundError, UserNotOwnerError, UserNotFoundError, \
+    UserAlreadyHasAccessError, CannotInviteOwnerError
 from app.dashboard.service import insert_project, get_projects, get_project, update_project, del_project, \
-    get_current_user
-from app.dashboard.schemas import ProjectResponse, ProjectCreate, UserProjects, ProjectInfo, ProjectUpdate
+    get_current_user, add_user_to_project
+from app.dashboard.schemas import ProjectResponse, ProjectCreate, UserProjects, ProjectInfo, ProjectUpdate, \
+    ProjectInvite
 from database.models import User
 
 router = APIRouter(tags=["project"])
@@ -18,13 +20,15 @@ async def create_project(project: ProjectCreate, owner: User = Depends(get_curre
 
 
 @router.get("/projects", response_model=UserProjects)
-async def show_projects(user: User = Depends(get_current_user), async_session: AsyncSession = Depends(get_session)) -> UserProjects:
+async def show_projects(user: User = Depends(get_current_user),
+                        async_session: AsyncSession = Depends(get_session)) -> UserProjects:
     projects = await get_projects(async_session, user.id)
     return projects
 
 
 @router.get("/project/{project_id}/info", response_model=ProjectInfo)
-async def show_project(project_id: int, user: User = Depends(get_current_user), async_session: AsyncSession = Depends(get_session)) -> ProjectInfo:
+async def show_project(project_id: int, user: User = Depends(get_current_user),
+                       async_session: AsyncSession = Depends(get_session)) -> ProjectInfo:
     try:
         return await get_project(async_session, user.id, project_id)
     except NoAccessError:
@@ -45,10 +49,28 @@ async def modify_project(project_info: ProjectUpdate, project_id: int, user: Use
 
 
 @router.delete("/project/{project_id}", status_code=204)
-async def delete_project(project_id: int, owner: User = Depends(get_current_user), async_session: AsyncSession = Depends(get_session)):
+async def delete_project(project_id: int, owner: User = Depends(get_current_user),
+                         async_session: AsyncSession = Depends(get_session)):
     try:
         await del_project(async_session, owner.id, project_id)
     except UserNotOwnerError:
         raise HTTPException(status_code=403, detail="User is not the project owner")
     except ProjectNotFoundError:
         raise HTTPException(status_code=404, detail="Project not found")
+
+
+@router.post("/project/{project_id}/invite", status_code=204)
+async def invite_user(project_id: int, login: ProjectInvite, owner: User = Depends(get_current_user),
+                      async_session: AsyncSession = Depends(get_session)):
+    try:
+        return await add_user_to_project(async_session, owner.id, project_id, login)
+    except UserNotOwnerError:
+        raise HTTPException(status_code=403, detail="User is not the project owner")
+    except ProjectNotFoundError:
+        raise HTTPException(status_code=404, detail="Project not found")
+    except CannotInviteOwnerError:
+        raise HTTPException(status_code=409, detail="Cannot invite the project owner")
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail=f"User with {login.login} does not exist")
+    except UserAlreadyHasAccessError:
+        raise HTTPException(status_code=409, detail=f"User with {login.login} already has access to the project")

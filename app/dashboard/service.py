@@ -5,27 +5,32 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 from config.config import SECRET_KEY
 from database.db import get_session
-from database.models import User, Project
+from database.models import User, Project, Member
 from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, ProjectNotFoundError, \
-    NoAccessError, UserNotOwnerError, InvalidCredentialsError, UnauthorizedError
-from app.dashboard.schemas import UserRegister, UserResponse, ProjectResponse, ProjectCreate, ProjectInfo, UserProjects, \
-    ProjectUpdate, UserLogin
-from app.dashboard.repository import select_user_by_username, select_user_by_id, add_new_user, add_new_project, \
-    get_owned_projects, get_participant_projects, select_project_by_id, select_members_by_project_id
+    NoAccessError, UserNotOwnerError, InvalidCredentialsError, UnauthorizedError, UserNotFoundError, \
+    UserAlreadyHasAccessError, CannotInviteOwnerError
+from app.dashboard.schemas import UserRegister, UserResponse, ProjectResponse, ProjectCreate, ProjectInfo, \
+    UserProjects, ProjectUpdate, UserLogin, ProjectInvite
+from app.dashboard.repository import select_user_by_username, select_user_by_id, add_new_user, \
+    add_new_project, get_owned_projects, get_member_projects, select_project_by_id, \
+    select_members_by_project_id, insert_member
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
+
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
+
 
 def verify_password(password: str, hashed: str) -> bool:
     return pwd_context.verify(password, hashed)
 
-async def get_current_user(token: str = Depends(oauth2_scheme), async_session: AsyncSession = Depends(get_session)) -> User:
+
+async def get_current_user(token: str = Depends(oauth2_scheme),
+                           async_session: AsyncSession = Depends(get_session)) -> User:
     try:
         token_decode = jwt.decode(token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": True})
     except jwt.ExpiredSignatureError:
@@ -36,6 +41,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), async_session: A
     if not user:
         raise UnauthorizedError()
     return user
+
 
 async def insert_user(session: AsyncSession, user_data: UserRegister) -> UserResponse:
     if user_data.password != user_data.repeat_password:
@@ -49,6 +55,7 @@ async def insert_user(session: AsyncSession, user_data: UserRegister) -> UserRes
         password_hash=hashed_password)
     new_user = await add_new_user(session, new_user)
     return UserResponse(user_id=new_user.id, login=new_user.username, created_at=new_user.created_at)
+
 
 async def get_token(session: AsyncSession, creds: UserLogin) -> str:
     user = await select_user_by_username(session, creds.login)
@@ -76,7 +83,7 @@ async def insert_project(session: AsyncSession, project_data: ProjectCreate, own
 
 async def get_projects(session: AsyncSession, user_id: int) -> UserProjects:
     owned_projects = await get_owned_projects(session, user_id)
-    participant_projects = await get_participant_projects(session, user_id)
+    participant_projects = await get_member_projects(session, user_id)
     projects = owned_projects + participant_projects
     return UserProjects(projects=[ProjectInfo.model_validate(p) for p in projects])
 
@@ -123,3 +130,19 @@ async def del_project(session: AsyncSession, user_id: int, project_id: int) -> N
     project = await get_project_for_owner(session, user_id, project_id)
     await session.delete(project)
     await session.commit()
+
+
+async def add_user_to_project(session: AsyncSession, user_id: int, project_id: int, username: ProjectInvite):
+    project = await get_project_for_owner(session, user_id, project_id)
+    user = await select_user_by_username(session, username.login)
+    if not user:
+        raise UserNotFoundError()
+    if user.id == project.owner_id:
+        raise CannotInviteOwnerError()
+    participants = await select_members_by_project_id(session, project_id)
+    if user.id in participants:
+        raise UserAlreadyHasAccessError()
+    new_participant = Member(
+        project_id=project_id,
+        user_id=user.id)
+    await insert_member(session, new_participant)

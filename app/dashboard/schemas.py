@@ -68,3 +68,6 @@ class ProjectInfo(APIModel):
 
 class UserProjects(APIModel):
     projects: list[ProjectInfo]
+
+class ProjectInvite(APIModel):
+    login: str = Field(min_length=1)

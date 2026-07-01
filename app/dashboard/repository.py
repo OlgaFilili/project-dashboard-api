@@ -1,7 +1,6 @@
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dashboard.schemas import ProjectUpdate
 from database.models import User, Project, Member
 
 
@@ -35,20 +34,23 @@ async def get_owned_projects(session: AsyncSession, owner_id: int) -> list[Proje
     return result.scalars().all()
 
 
-async def get_participant_projects(session: AsyncSession, user_id: int) -> list[Project]:
+async def get_member_projects(session: AsyncSession, user_id: int) -> list[Project]:
     result = await session.execute(select(Member.project_id).where(Member.user_id == user_id))
     projects_ids = result.scalars().all()
     projects = await session.execute(select(Project).where(Project.id.in_(projects_ids)))
     return projects.scalars().all()
 
-async def select_project_by_id(session: AsyncSession, project_id: int) -> Project| None:
+
+async def select_project_by_id(session: AsyncSession, project_id: int) -> Project | None:
     result = await session.execute(select(Project).where(Project.id == project_id))
     return result.scalar_one_or_none()
+
 
 async def select_members_by_project_id(session: AsyncSession, project_id: int) -> list[int]:
     result = await session.execute(select(Member.user_id).where(Member.project_id == project_id))
     return result.scalars().all()
 
 
-# result = await session.execute(select(Project).where((Member.user_id == user_id), (Member.project_id == ))
-# return [ProjectsResponse(post_id=post.id, text=post.text, created_at=post.created_at) for post in posts]
+async def insert_member(session: AsyncSession, member: Member):
+    session.add(member)
+    await session.commit()

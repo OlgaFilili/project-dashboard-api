@@ -28,3 +28,15 @@ class InvalidCredentialsError(ServiceError):
 
 class UnauthorizedError(ServiceError):
     pass
+
+
+class UserNotFoundError(ServiceError):
+    pass
+
+
+class UserAlreadyHasAccessError(ServiceError):
+    pass
+
+
+class CannotInviteOwnerError(ServiceError):
+    pass
