@@ -39,8 +39,7 @@ Response: 201 Created
   "created_at": "2026-06-18T15:32:29Z"
 }
 Errors:
-422 Unprocessable Entity - Username is required.
-422 Unprocessable Entity - Password is required.
+422 Unprocessable Entity - Username and password required.
 422 Unprocessable Entity - Passwords do not match.
 409 Conflict - User already exists.
 
@@ -304,5 +303,6 @@ Errors:
 401 Unauthorized - Invalid or expired token.
 403 Forbidden - User is not the project owner.
 404 Not Found - Project not found.
-409 Conflict - User already has access.
-422 Unprocessable Entity - User with <login> does not exist.
+404 Not Found - User with <login> does not exist.
+409 Conflict - Cannot invite the project owner.
+409 Conflict - User with <login> already has access.
