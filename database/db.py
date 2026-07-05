@@ -3,7 +3,7 @@ import os
 from config.config import CONNECTION_STRING
 from database.models import Base
 
-engine = create_async_engine(CONNECTION_STRING, echo=True)
+engine = create_async_engine(CONNECTION_STRING)
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 
