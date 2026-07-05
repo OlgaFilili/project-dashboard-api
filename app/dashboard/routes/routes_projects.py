@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.db import get_session
 from app.dashboard.exceptions import NoAccessError, ProjectNotFoundError, UserNotOwnerError, UserNotFoundError, \
     UserAlreadyHasAccessError, CannotInviteOwnerError
-from app.dashboard.service import insert_project, get_projects, get_project, update_project, del_project, \
-    get_current_user, add_user_to_project, get_project_documents
 from app.dashboard.schemas import ProjectResponse, ProjectCreate, UserProjects, ProjectInfo, ProjectUpdate, \
     ProjectInvite, DocsResponse
+from app.dashboard.service.service_core import insert_project, get_projects, get_project, update_project, del_project, \
+    add_user_to_project, get_project_documents
+from app.dashboard.service.security import get_current_user
+
+from database.db import get_session
 from database.models import User
 
 router = APIRouter(tags=["projects"])
@@ -78,7 +80,7 @@ async def invite_user(project_id: int, login: ProjectInvite, owner: User = Depen
 
 @router.get("/project/{project_id}/documents")
 async def show_project_documents(project_id: int, user: User = Depends(get_current_user),
-                         async_session: AsyncSession = Depends(get_session)) -> DocsResponse:
+                                 async_session: AsyncSession = Depends(get_session)) -> DocsResponse:
     try:
         return await get_project_documents(async_session, user.id, project_id)
     except NoAccessError:

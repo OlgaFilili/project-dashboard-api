@@ -1,47 +1,20 @@
 import jwt
 from datetime import datetime, timedelta, timezone
-from passlib.context import CryptContext
-from fastapi import Depends
-from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config.config import SECRET_KEY
-from database.db import get_session
-from database.models import User, Project, Member, Document
-from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, ProjectNotFoundError, \
-    NoAccessError, UserNotOwnerError, InvalidCredentialsError, UnauthorizedError, UserNotFoundError, \
-    UserAlreadyHasAccessError, CannotInviteOwnerError, DocumentNotFoundError
+from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, InvalidCredentialsError, \
+    UserNotFoundError, \
+    UserAlreadyHasAccessError, CannotInviteOwnerError
+from app.dashboard.repository import select_user_by_username, add_new_user, \
+    add_new_project, select_owned_projects, select_member_projects, select_members_by_project_id, insert_member, \
+    select_documents_by_project_id
 from app.dashboard.schemas import UserRegister, UserResponse, ProjectResponse, ProjectCreate, ProjectInfo, \
     ProjectFullInfo, UserProjects, ProjectUpdate, UserLogin, ProjectInvite, DocsResponse, DocResponse
-from app.dashboard.repository import select_user_by_username, select_user_by_id, add_new_user, \
-    add_new_project, select_owned_projects,select_member_projects, select_project_by_id, \
-    select_members_by_project_id, insert_member, select_document_by_id, select_documents_by_project_id
+from app.dashboard.service.helpers import hash_password, get_project_or_403, get_project_for_owner
+from app.dashboard.service.security import verify_password
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = HTTPBearer()
-
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(password: str, hashed: str) -> bool:
-    return pwd_context.verify(password, hashed)
-
-
-async def get_current_user(token: str = Depends(oauth2_scheme),
-                           async_session: AsyncSession = Depends(get_session)) -> User:
-    try:
-        token = token.credentials
-        token_decode = jwt.decode(token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": True})
-    except jwt.ExpiredSignatureError:
-        raise UnauthorizedError()
-    except jwt.InvalidTokenError:
-        raise UnauthorizedError()
-    user = await select_user_by_id(async_session, token_decode["user_id"])
-    if not user:
-        raise UnauthorizedError()
-    return user
+from config.config import SECRET_KEY
+from database.models import User, Project, Member
 
 
 async def insert_user(session: AsyncSession, user_data: UserRegister) -> UserResponse:
@@ -98,22 +71,6 @@ async def get_projects(session: AsyncSession, user_id: int) -> UserProjects:
     return UserProjects(projects=user_projects)
 
 
-async def get_project_or_404(session: AsyncSession, project_id: int) -> Project:
-    project = await select_project_by_id(session, project_id)
-    if not project:
-        raise ProjectNotFoundError()
-    return project
-
-
-async def get_project_or_403(session: AsyncSession, user_id: int, project_id: int) -> Project:
-    project = await get_project_or_404(session, project_id)
-    if project.owner_id != user_id:
-        members = await select_members_by_project_id(session, project_id)
-        if not user_id in members:
-            raise NoAccessError()
-    return project
-
-
 async def get_project(session: AsyncSession, user_id: int, project_id: int) -> ProjectInfo:
     project = await get_project_or_403(session, user_id, project_id)
     return ProjectInfo.model_validate(project)
@@ -127,13 +84,6 @@ async def update_project(session: AsyncSession, user_id: int, project_id: int,
         setattr(project, field, value)
     await session.commit()
     return ProjectInfo.model_validate(project)
-
-
-async def get_project_for_owner(session: AsyncSession, user_id: int, project_id: int) -> Project:
-    project = await get_project_or_404(session, project_id)
-    if project.owner_id != user_id:
-        raise UserNotOwnerError()
-    return project
 
 
 async def del_project(session: AsyncSession, user_id: int, project_id: int) -> None:
@@ -157,17 +107,6 @@ async def add_user_to_project(session: AsyncSession, user_id: int, project_id: i
         user_id=user.id)
     await insert_member(session, new_participant)
 
-
-async def get_doc_or_404(session: AsyncSession, doc_id: int) -> Document:
-    doc = await select_document_by_id(session, doc_id)
-    if not doc:
-        raise DocumentNotFoundError()
-    return doc
-
-async def get_doc_or_403(session: AsyncSession, user_id: int, doc_id: int) -> Document:
-    doc = await get_doc_or_404(session, doc_id)
-    await get_project_or_403(session, user_id, doc.project_id)
-    return doc
 
 async def get_project_documents(session: AsyncSession, user_id: int, project_id: int) -> DocsResponse:
     await get_project_or_403(session, user_id, project_id)

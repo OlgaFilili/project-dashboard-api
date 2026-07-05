@@ -5,7 +5,8 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 
 from app.dashboard.schemas import UserRegister, UserLogin
-from app.dashboard.service import insert_user, get_token, get_current_user
+from app.dashboard.service.service_core import insert_user, get_token
+from app.dashboard.service.security import get_current_user
 from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, InvalidCredentialsError, \
     UnauthorizedError
 from config.config import SECRET_KEY
@@ -20,11 +21,11 @@ async def test_insert_user_success(sample_user, monkeypatch):
         return sample_user
 
     monkeypatch.setattr(
-        "app.dashboard.service.select_user_by_username",
+        "app.dashboard.service.service_core.select_user_by_username",
         fake_select_user_by_username)
 
     monkeypatch.setattr(
-        "app.dashboard.service.add_new_user",
+        "app.dashboard.service.service_core.add_new_user",
         fake_add_new_user)
 
     user = UserRegister(
@@ -59,7 +60,7 @@ async def test_insert_user_user_exists(monkeypatch):
         return ExistingUser()
 
     monkeypatch.setattr(
-        "app.dashboard.service.select_user_by_username",
+        "app.dashboard.service.service_core.select_user_by_username",
         fake_select_user_by_username)
     user = UserRegister(
         login="Olga",
@@ -78,10 +79,10 @@ async def test_get_token_success(sample_user, monkeypatch):
         return True
 
     monkeypatch.setattr(
-        "app.dashboard.service.select_user_by_username",
+        "app.dashboard.service.service_core.select_user_by_username",
         fake_select_user_by_username)
     monkeypatch.setattr(
-        "app.dashboard.service.verify_password",
+        "app.dashboard.service.service_core.verify_password",
         fake_verify_password)
 
     user = UserLogin(
@@ -102,7 +103,7 @@ async def test_get_token_invalid_login(monkeypatch):
         return None
 
     monkeypatch.setattr(
-        "app.dashboard.service.select_user_by_username",
+        "app.dashboard.service.service_core.select_user_by_username",
         fake_select_user_by_username)
 
     user = UserLogin(
@@ -122,10 +123,10 @@ async def test_get_token_invalid_token(sample_user, monkeypatch):
         return False
 
     monkeypatch.setattr(
-        "app.dashboard.service.select_user_by_username",
+        "app.dashboard.service.service_core.select_user_by_username",
         fake_select_user_by_username)
     monkeypatch.setattr(
-        "app.dashboard.service.verify_password",
+        "app.dashboard.service.service_core.verify_password",
         fake_verify_password)
 
     user = UserLogin(
@@ -142,7 +143,7 @@ async def test_get_current_user_success(sample_user, monkeypatch):
         return sample_user
 
     monkeypatch.setattr(
-        "app.dashboard.service.select_user_by_id",
+        "app.dashboard.service.security.select_user_by_id",
         fake_select_user_by_id)
     payload = {
         "user_id": 1,
@@ -161,7 +162,7 @@ async def test_get_current_user_no_user(monkeypatch):
         return None
 
     monkeypatch.setattr(
-        "app.dashboard.service.select_user_by_id",
+        "app.dashboard.service.security.select_user_by_id",
         fake_select_user_by_id)
     payload = {
         "user_id": 10,

@@ -1,13 +1,13 @@
-from unittest.mock import Mock
-
 import pytest
 from datetime import datetime
 from io import BytesIO
+from unittest.mock import Mock
 
 from app.dashboard.exceptions import UnsupportedFileTypeError, StorageError
 from app.dashboard.schemas import DocsResponse
-from app.dashboard.service_docs import add_documents, get_document, del_document, put_document
-from app.dashboard.storage_models import UploadedFileInfo, FileToUpdate
+from app.dashboard.service.service_docs import add_documents, get_document, del_document, put_document
+from app.dashboard.storage_models import UploadedFileInfo
+
 from database.models import Document
 
 
@@ -42,13 +42,13 @@ async def test_add_documents_success(sample_project, monkeypatch):
             uploaded_at=datetime(2026, 6, 3, 12, 0, 0))]
 
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_project_or_403",
+        "app.dashboard.service.service_docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.upload_file",
+        "app.dashboard.service.service_docs.upload_file",
         fake_upload_file)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.insert_docs",
+        "app.dashboard.service.service_docs.insert_docs",
         fake_insert_docs)
 
     files = [FakeUploadFile(
@@ -58,7 +58,7 @@ async def test_add_documents_success(sample_project, monkeypatch):
         file=BytesIO(b"hello"))]
 
     result = await add_documents(None, project_id=2, user_id=1, files=files)
-    doc=result.documents[0]
+    doc = result.documents[0]
     assert isinstance(result, DocsResponse)
     assert len(result.documents) == 1
     assert doc.document_id == 1
@@ -73,7 +73,7 @@ async def test_add_documents_unsupported_file_type(sample_project, monkeypatch):
         return sample_project
 
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_project_or_403",
+        "app.dashboard.service.service_docs.get_project_or_403",
         fake_get_project_or_403)
 
     files = [FakeUploadFile(
@@ -95,10 +95,10 @@ async def test_add_documents_storage_error(sample_project, monkeypatch):
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_project_or_403",
+        "app.dashboard.service.service_docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.upload_file",
+        "app.dashboard.service.service_docs.upload_file",
         fake_upload_file)
 
     files = [FakeUploadFile(
@@ -125,13 +125,13 @@ async def test_get_document_success(sample_document, sample_project, monkeypatch
         return stream
 
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_doc_or_403",
+        "app.dashboard.service.service_docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_project_or_403",
+        "app.dashboard.service.service_docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.download_file",
+        "app.dashboard.service.service_docs.download_file",
         fake_download_file)
 
     result = await get_document(None, document_id=3, user_id=1)
@@ -153,13 +153,13 @@ async def test_get_document_storage_error(sample_document, sample_project, monke
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_doc_or_403",
+        "app.dashboard.service.service_docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_project_or_403",
+        "app.dashboard.service.service_docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.download_file",
+        "app.dashboard.service.service_docs.download_file",
         fake_download_file)
 
     with pytest.raises(StorageError):
@@ -174,10 +174,10 @@ async def test_del_document_success(session, sample_document, monkeypatch):
     fake_delete_file = Mock()
 
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_doc_or_403",
+        "app.dashboard.service.service_docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.delete_file",
+        "app.dashboard.service.service_docs.delete_file",
         fake_delete_file)
 
     await del_document(session=session, document_id=3, user_id=1)
@@ -196,10 +196,10 @@ async def test_del_document_storage_error(sample_document, monkeypatch):
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_doc_or_403",
+        "app.dashboard.service.service_docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.delete_file",
+        "app.dashboard.service.service_docs.delete_file",
         fake_delete_file)
 
     with pytest.raises(StorageError):
@@ -214,10 +214,10 @@ async def test_put_document_success(session, sample_document, monkeypatch):
     fake_update_file = Mock()
 
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_doc_or_403",
+        "app.dashboard.service.service_docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.update_file",
+        "app.dashboard.service.service_docs.update_file",
         fake_update_file)
 
     file = FakeUploadFile(
@@ -226,7 +226,7 @@ async def test_put_document_success(session, sample_document, monkeypatch):
         size=12000,
         file=BytesIO(b"hello, world!"))
 
-    result= await put_document(session=session, document_id=3, user_id=1, file=file)
+    result = await put_document(session=session, document_id=3, user_id=1, file=file)
 
     called_arg = fake_update_file.call_args.args[0]
 
@@ -236,10 +236,10 @@ async def test_put_document_success(session, sample_document, monkeypatch):
     assert called_arg.stream is file.file
 
     session.commit.assert_awaited_once()
-    assert result.document_id==3
-    assert result.filename=="file_v1.pdf"
-    assert result.size==12000
-    assert result.uploaded_at==datetime(2026, 6, 2, 16, 49, 27)
+    assert result.document_id == 3
+    assert result.filename == "file_v1.pdf"
+    assert result.size == 12000
+    assert result.uploaded_at == datetime(2026, 6, 2, 16, 49, 27)
 
 
 @pytest.mark.asyncio
@@ -251,10 +251,10 @@ async def test_put_document_storage_error(session, sample_document, monkeypatch)
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service_docs.get_doc_or_403",
+        "app.dashboard.service.service_docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service_docs.update_file",
+        "app.dashboard.service.service_docs.update_file",
         fake_update_file)
 
     file = FakeUploadFile(
@@ -265,7 +265,3 @@ async def test_put_document_storage_error(session, sample_document, monkeypatch)
 
     with pytest.raises(StorageError):
         await put_document(session=session, document_id=3, user_id=1, file=file)
-
-
-
-
