@@ -50,10 +50,16 @@ class ProjectUpdate(APIModel):
 
 
 class DocResponse(APIModel):
-    document_id: int
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    document_id: int = Field(validation_alias="id")
     filename: str
-    size: int
+    size: int = Field(validation_alias="file_size")
     uploaded_at: datetime
+
+
+class DocsResponse(APIModel):
+    documents: list[DocResponse]
 
 
 class ProjectInfo(APIModel):
@@ -66,8 +72,13 @@ class ProjectInfo(APIModel):
     owner_id: int
 
 
+class ProjectFullInfo(ProjectInfo):
+    documents: list[DocResponse] = Field(default_factory=list)
+
+
 class UserProjects(APIModel):
-    projects: list[ProjectInfo]
+    projects: list[ProjectFullInfo] = Field(default_factory=list)
+
 
 class ProjectInvite(APIModel):
     login: str = Field(min_length=1)
