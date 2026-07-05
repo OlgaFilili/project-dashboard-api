@@ -1,15 +1,17 @@
+from fileinput import filename
 from unittest.mock import AsyncMock
 
 import pytest
 from datetime import datetime
 
-import app.dashboard.service
 from app.dashboard.exceptions import ProjectNotFoundError, NoAccessError, UserNotOwnerError, UserNotFoundError, \
-    CannotInviteOwnerError, UserAlreadyHasAccessError
-from app.dashboard.schemas import ProjectCreate, ProjectInfo, UserProjects, ProjectUpdate, ProjectInvite
+    CannotInviteOwnerError, UserAlreadyHasAccessError, DocumentNotFoundError
+from app.dashboard.schemas import ProjectCreate, ProjectInfo, UserProjects, ProjectUpdate, ProjectInvite, \
+    ProjectFullInfo, DocResponse
 from app.dashboard.service import insert_project, get_projects, get_project, get_project_or_404, get_project_or_403, \
-    update_project, get_project_for_owner, del_project, add_user_to_project
-from database.models import User, Member
+    update_project, get_project_for_owner, del_project, add_user_to_project, get_doc_or_404, get_doc_or_403, \
+    get_project_documents
+from database.models import User, Document
 
 
 @pytest.mark.asyncio
@@ -37,76 +39,70 @@ async def test_insert_project_success(project_factory, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_projects_success(project_factory, monkeypatch):
-    async def fake_get_owned_projects(*args, **kwargs):
-        return [
-            project_factory(
-                owner_id=1),
-            project_factory(
+async def test_get_projects_success(session, project_factory, monkeypatch):
+    async def fake_select_owned_projects(*args, **kwargs):
+        return [project_factory(
                 id=2,
                 name="Fast API project",
                 description="",
                 created_at=datetime(2026, 6, 1, 16, 0, 0),
-                owner_id=1
-            )
-        ]
+                owner_id=1)]
 
-    async def fake_get_participant_projects(*args, **kwargs):
+    async def fake_select_member_projects(*args, **kwargs):
         return [project_factory(
-            id=3,
+            id=5,
             name="Flask project",
             description="Description",
             created_at=datetime(2026, 6, 1, 7, 0, 0),
-            owner_id=2,
-        )]
+            owner_id=2)]
+
+    async def fake_select_documents_by_project_id(session, project_id):
+        if project_id == 2:
+            return [
+                Document(
+                    id=10,
+                    project_id=2,
+                    filename="a.pdf",
+                    s3_key="key1",
+                    file_size=100,
+                    content_type="application/pdf",
+                    uploaded_at=datetime(2026, 6, 5, 10, 0, 0))]
+        return []
 
     monkeypatch.setattr(
-        "app.dashboard.service.get_owned_projects",
-        fake_get_owned_projects)
+        "app.dashboard.service.select_owned_projects",
+        fake_select_owned_projects)
     monkeypatch.setattr(
-        "app.dashboard.service.get_participant_projects",
-        fake_get_participant_projects)
+        "app.dashboard.service.select_member_projects",
+        fake_select_member_projects)
+    monkeypatch.setattr(
+        "app.dashboard.service.select_documents_by_project_id",
+        fake_select_documents_by_project_id)
 
-    result = await get_projects(None, user_id=1)
+    result = await get_projects(session, user_id=1)
 
-    assert result == UserProjects(
-        projects=[ProjectInfo(
-            project_id=1,
-            name="Project",
-            description="Project Description",
-            created_at=datetime(2026, 6, 1, 12, 0, 0),
-            owner_id=1),
-            ProjectInfo(
-                project_id=2,
-                name="Fast API project",
-                description="",
-                created_at=datetime(2026, 6, 1, 16, 0, 0),
-                owner_id=1),
-            ProjectInfo(
-                project_id=3,
-                name="Flask project",
-                description="Description",
-                created_at=datetime(2026, 6, 1, 7, 0, 0),
-                owner_id=2
-            )
-        ]
-    )
+    assert len(result.projects) ==2
+    project_2 = next(p for p in result.projects if p.project_id == 2)
+    assert len(project_2.documents) == 1
+    assert project_2.documents[0].document_id == 10
+    project_5 = next(p for p in result.projects if p.project_id == 5)
+    assert project_5.documents == []
 
 
 @pytest.mark.asyncio
 async def test_get_projects_returns_empty_list(monkeypatch):
-    async def fake_get_owned_projects(*args, **kwargs):
+    async def fake_select_owned_projects(*args, **kwargs):
         return []
 
-    async def fake_get_participant_projects(*args, **kwargs):
+    async def fake_select_member_projects(*args, **kwargs):
         return []
 
     monkeypatch.setattr(
-        "app.dashboard.service.get_owned_projects",
-        fake_get_owned_projects)
+        "app.dashboard.service.select_owned_projects",
+        fake_select_owned_projects)
     monkeypatch.setattr(
-        "app.dashboard.service.get_participant_projects",
-        fake_get_participant_projects)
+        "app.dashboard.service.select_member_projects",
+        fake_select_member_projects)
 
     result = await get_projects(None, user_id=2)
 
@@ -403,3 +399,102 @@ async def test_add_user_to_project_user_already_member(sample_project, monkeypat
 
     with pytest.raises(UserAlreadyHasAccessError):
         await add_user_to_project(None, user_id=1, project_id=2, username=ProjectInvite(login="Bob"))
+
+
+@pytest.mark.asyncio
+async def test_get_doc_or_404_success(sample_document, monkeypatch):
+    async def fake_select_document_by_id(*args, **kwargs):
+        return sample_document
+
+    monkeypatch.setattr(
+        "app.dashboard.service.select_document_by_id",
+        fake_select_document_by_id)
+
+    result = await get_doc_or_404(None, doc_id=3)
+
+    assert result is sample_document
+
+
+@pytest.mark.asyncio
+async def test_get_doc_or_404_document_not_found(monkeypatch):
+    async def fake_select_document_by_id(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(
+        "app.dashboard.service.select_document_by_id",
+        fake_select_document_by_id)
+
+    with pytest.raises(DocumentNotFoundError):
+        await get_doc_or_404(None, doc_id=10)
+
+
+@pytest.mark.asyncio
+async def test_get_doc_or_403_success(sample_document, sample_project, monkeypatch):
+    async def fake_get_doc_or_404(*args, **kwargs):
+        return sample_document
+
+    async def fake_get_project_or_403(*args, **kwargs):
+        return sample_project
+
+    monkeypatch.setattr(
+        "app.dashboard.service.get_doc_or_404",
+        fake_get_doc_or_404)
+    monkeypatch.setattr(
+        "app.dashboard.service.get_project_or_403",
+        fake_get_project_or_403)
+
+    result = await get_doc_or_403(None, user_id=1, doc_id=3)
+
+    assert result is sample_document
+
+
+@pytest.mark.asyncio
+async def test_get_project_documents_success(sample_project, document_factory, monkeypatch):
+    async def fake_get_project_or_403(*args, **kwargs):
+        return sample_project
+
+    async def fake_select_documents_by_project_id(*args, **kwargs):
+        return [document_factory(id=3),
+            document_factory(
+                id=4,
+                filename="report.docx",
+                s3_key="report_s3_key",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                file_size=6400,
+                uploaded_at=datetime(2026, 5, 31, 12, 49, 57))]
+
+
+    monkeypatch.setattr(
+        "app.dashboard.service.get_project_or_403",
+        fake_get_project_or_403)
+    monkeypatch.setattr(
+        "app.dashboard.service.select_documents_by_project_id",
+        fake_select_documents_by_project_id)
+
+    result = await get_project_documents(None, user_id=1, project_id=2)
+
+    assert len(result.documents) == 2
+    ids = [d.document_id for d in result.documents]
+    assert ids == [3, 4]
+
+
+@pytest.mark.asyncio
+async def test_get_project_documents_no_docs(sample_project, document_factory, monkeypatch):
+    async def fake_get_project_or_403(*args, **kwargs):
+        return sample_project
+
+    async def fake_select_documents_by_project_id(*args, **kwargs):
+        return []
+
+
+    monkeypatch.setattr(
+        "app.dashboard.service.get_project_or_403",
+        fake_get_project_or_403)
+    monkeypatch.setattr(
+        "app.dashboard.service.select_documents_by_project_id",
+        fake_select_documents_by_project_id)
+
+    result = await get_project_documents(None, user_id=1, project_id=2)
+
+    assert result.documents == []
+
