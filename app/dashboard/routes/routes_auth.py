@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.db import get_session
 from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, InvalidCredentialsError
-from app.dashboard.service import insert_user, get_token
+from app.dashboard.service.service_core import insert_user, get_token
 from app.dashboard.schemas import UserRegister, UserResponse, UserLogin
 
 router = APIRouter(tags=["users"])
@@ -17,6 +17,7 @@ async def create_user(creds: UserRegister, async_session: AsyncSession = Depends
         raise HTTPException(status_code=422, detail="Passwords do not match")
     except UserAlreadyExistsError:
         raise HTTPException(status_code=409, detail="User already exists")
+
 
 @router.post("/login")
 async def login(creds: UserLogin, async_session: AsyncSession = Depends(get_session)):
