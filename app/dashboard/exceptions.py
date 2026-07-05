@@ -40,3 +40,14 @@ class UserAlreadyHasAccessError(ServiceError):
 
 class CannotInviteOwnerError(ServiceError):
     pass
+
+
+class StorageError(ServiceError):
+    pass
+
+
+class UnsupportedFileTypeError(ServiceError):
+    pass
+
+class DocumentNotFoundError(ServiceError):
+    pass

@@ -5,12 +5,12 @@ from database.db import get_session
 from app.dashboard.exceptions import NoAccessError, ProjectNotFoundError, UserNotOwnerError, UserNotFoundError, \
     UserAlreadyHasAccessError, CannotInviteOwnerError
 from app.dashboard.service import insert_project, get_projects, get_project, update_project, del_project, \
-    get_current_user, add_user_to_project
+    get_current_user, add_user_to_project, get_project_documents
 from app.dashboard.schemas import ProjectResponse, ProjectCreate, UserProjects, ProjectInfo, ProjectUpdate, \
-    ProjectInvite
+    ProjectInvite, DocsResponse
 from database.models import User
 
-router = APIRouter(tags=["project"])
+router = APIRouter(tags=["projects"])
 
 
 @router.post("/projects", response_model=ProjectResponse, status_code=201)
@@ -74,3 +74,14 @@ async def invite_user(project_id: int, login: ProjectInvite, owner: User = Depen
         raise HTTPException(status_code=404, detail=f"User with {login.login} does not exist")
     except UserAlreadyHasAccessError:
         raise HTTPException(status_code=409, detail=f"User with {login.login} already has access to the project")
+
+
+@router.get("/project/{project_id}/documents")
+async def show_project_documents(project_id: int, user: User = Depends(get_current_user),
+                         async_session: AsyncSession = Depends(get_session)) -> DocsResponse:
+    try:
+        return await get_project_documents(async_session, user.id, project_id)
+    except NoAccessError:
+        raise HTTPException(status_code=403, detail="User has no access to the project")
+    except ProjectNotFoundError:
+        raise HTTPException(status_code=404, detail="Project not found")

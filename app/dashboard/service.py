@@ -2,23 +2,23 @@ import jwt
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.config import SECRET_KEY
 from database.db import get_session
-from database.models import User, Project, Member
+from database.models import User, Project, Member, Document
 from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, ProjectNotFoundError, \
     NoAccessError, UserNotOwnerError, InvalidCredentialsError, UnauthorizedError, UserNotFoundError, \
-    UserAlreadyHasAccessError, CannotInviteOwnerError
+    UserAlreadyHasAccessError, CannotInviteOwnerError, DocumentNotFoundError
 from app.dashboard.schemas import UserRegister, UserResponse, ProjectResponse, ProjectCreate, ProjectInfo, \
-    UserProjects, ProjectUpdate, UserLogin, ProjectInvite
+    ProjectFullInfo, UserProjects, ProjectUpdate, UserLogin, ProjectInvite, DocsResponse, DocResponse
 from app.dashboard.repository import select_user_by_username, select_user_by_id, add_new_user, \
-    add_new_project, get_owned_projects, get_member_projects, select_project_by_id, \
-    select_members_by_project_id, insert_member
+    add_new_project, select_owned_projects,select_member_projects, select_project_by_id, \
+    select_members_by_project_id, insert_member, select_document_by_id, select_documents_by_project_id
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+oauth2_scheme = HTTPBearer()
 
 
 def hash_password(password: str) -> str:
@@ -32,6 +32,7 @@ def verify_password(password: str, hashed: str) -> bool:
 async def get_current_user(token: str = Depends(oauth2_scheme),
                            async_session: AsyncSession = Depends(get_session)) -> User:
     try:
+        token = token.credentials
         token_decode = jwt.decode(token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": True})
     except jwt.ExpiredSignatureError:
         raise UnauthorizedError()
@@ -82,10 +83,19 @@ async def insert_project(session: AsyncSession, project_data: ProjectCreate, own
 
 
 async def get_projects(session: AsyncSession, user_id: int) -> UserProjects:
-    owned_projects = await get_owned_projects(session, user_id)
-    participant_projects = await get_member_projects(session, user_id)
+    owned_projects = await select_owned_projects(session, user_id)
+    participant_projects = await select_member_projects(session, user_id)
     projects = owned_projects + participant_projects
-    return UserProjects(projects=[ProjectInfo.model_validate(p) for p in projects])
+    user_projects = []
+
+    for project in projects:
+        docs = await select_documents_by_project_id(session, project.id)
+        project_info = ProjectInfo.model_validate(project)
+        user_projects.append(
+            ProjectFullInfo(
+                **project_info.model_dump(),
+                documents=[DocResponse.model_validate(d) for d in docs]))
+    return UserProjects(projects=user_projects)
 
 
 async def get_project_or_404(session: AsyncSession, project_id: int) -> Project:
@@ -146,3 +156,20 @@ async def add_user_to_project(session: AsyncSession, user_id: int, project_id: i
         project_id=project_id,
         user_id=user.id)
     await insert_member(session, new_participant)
+
+
+async def get_doc_or_404(session: AsyncSession, doc_id: int) -> Document:
+    doc = await select_document_by_id(session, doc_id)
+    if not doc:
+        raise DocumentNotFoundError()
+    return doc
+
+async def get_doc_or_403(session: AsyncSession, user_id: int, doc_id: int) -> Document:
+    doc = await get_doc_or_404(session, doc_id)
+    await get_project_or_403(session, user_id, doc.project_id)
+    return doc
+
+async def get_project_documents(session: AsyncSession, user_id: int, project_id: int) -> DocsResponse:
+    await get_project_or_403(session, user_id, project_id)
+    result = await select_documents_by_project_id(session, project_id)
+    return DocsResponse(documents=[DocResponse.model_validate(d) for d in result])
