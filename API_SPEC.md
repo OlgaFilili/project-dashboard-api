@@ -222,7 +222,7 @@ Response: 201 Created
     },
 	{
 	  "document_id": 3, 
-	  "filename": "spec.pdf",
+	  "filename": "report.docx",
 	  "size": 8192
 	  "uploaded_at": "2026-06-19T17:16:57Z"
     }
@@ -233,6 +233,7 @@ Errors:
 401 Unauthorized - Invalid or expired token.
 403 Forbidden - User has no access to the project.
 404 Not Found - Project not found.
+415 Unsupported Media Type - File type not supported.
 
 
 10. GET /document/{document_id} - Download document, if the user has access to the corresponding project
@@ -273,6 +274,7 @@ Errors:
 401 Unauthorized - Invalid or expired token.
 403 Forbidden - User has no access to the corresponding project.
 404 Not Found - Document not found.
+415 Unsupported Media Type - File type not supported.
 
 12. DELETE /document/{document_id}
 
