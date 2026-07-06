@@ -77,6 +77,8 @@ http://localhost:8000
 3. Project Structure
 .
 ├── app/
+│     ├── config/
+│     │     └── config.py
 │     ├── dashboard/
 │     │     ├── routes.py 
 │     │     │     ├── routes_auth.py
@@ -92,15 +94,13 @@ http://localhost:8000
 │     │     ├── schemas.py
 │     │     ├── storage.py
 │     │     └── storage_models.py
+│     ├── database/
+│     │     ├── db.py
+│     │     └── models.py
+│     ├── object_storage/
+│     │     └── client.py
 │     ├── logging-config.py
 │     └── main.py
-├── config/
-│     └── config.py
-├── database/
-│     ├── db.py
-│     └── models.py
-├── object_storage/
-│     └── client.py
 ├── tests/
 │     ├── conftest.py
 │     ├── test_auth.py

@@ -8,7 +8,7 @@ from app.dashboard.schemas import DocsResponse
 from app.dashboard.service.service_docs import add_documents, get_document, del_document, put_document
 from app.dashboard.storage_models import UploadedFileInfo
 
-from database.models import Document
+from app.database.models import Document
 
 
 class FakeUploadFile:

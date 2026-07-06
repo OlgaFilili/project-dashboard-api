@@ -9,7 +9,7 @@ from app.dashboard.schemas import ProjectCreate, ProjectInfo, UserProjects, Proj
 from app.dashboard.service.service_core import insert_project, get_projects, get_project, \
     update_project, del_project, add_user_to_project, \
     get_project_documents
-from database.models import User, Document
+from app.database.models import User, Document
 
 
 @pytest.mark.asyncio

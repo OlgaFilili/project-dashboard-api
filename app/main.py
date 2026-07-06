@@ -7,10 +7,10 @@ from app.dashboard.exceptions import UnauthorizedError
 from app.dashboard.routes.routes_auth import router as auth_router
 from app.dashboard.routes.routes_docs import router as docs_router
 from app.dashboard.routes.routes_projects import router
-from app.logging_config import setup_logging
 
-from database.db import init_db
-from object_storage.client import init_storage
+from app.database.db import init_db
+from app.object_storage.client import init_storage
+from app.logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)

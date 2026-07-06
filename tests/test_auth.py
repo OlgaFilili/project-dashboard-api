@@ -9,7 +9,7 @@ from app.dashboard.service.service_core import insert_user, get_token
 from app.dashboard.service.security import get_current_user
 from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, InvalidCredentialsError, \
     UnauthorizedError
-from config.config import SECRET_KEY
+from app.config.config import SECRET_KEY
 
 
 @pytest.mark.asyncio

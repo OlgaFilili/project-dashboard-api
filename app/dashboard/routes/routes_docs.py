@@ -8,8 +8,8 @@ from app.dashboard.schemas import DocsResponse, DocResponse
 from app.dashboard.service.security import get_current_user
 from app.dashboard.service.service_docs import add_documents, get_document, del_document, put_document
 
-from database.db import get_session
-from database.models import User
+from app.database.db import get_session
+from app.database.models import User
 
 router = APIRouter(tags=["documents"])
 
