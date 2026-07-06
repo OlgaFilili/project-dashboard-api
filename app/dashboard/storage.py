@@ -5,10 +5,12 @@ from uuid import uuid4
 
 from app.dashboard.exceptions import StorageError
 from app.dashboard.storage_models import FileToUpload, UploadedFileInfo, FileToUpdate
-from config.config import MINIO_BUCKET
-from object_storage.client import storage_client
+
+from app.config.config import MINIO_BUCKET
+from app.object_storage.client import storage_client
 
 logger = logging.getLogger(__name__)
+
 
 def upload_file(file: FileToUpload) -> UploadedFileInfo:
     s3_key = str(uuid4())
@@ -28,13 +30,15 @@ def upload_file(file: FileToUpload) -> UploadedFileInfo:
         content_type=file.content_type,
         file_size=file.file_size)
 
+
 def download_file(s3_key: str) -> StreamingBody:
     try:
-        response=storage_client.get_object(Bucket=MINIO_BUCKET, Key=s3_key)
+        response = storage_client.get_object(Bucket=MINIO_BUCKET, Key=s3_key)
     except ClientError:
         logger.exception("storage_download_failed s3_key=%s", s3_key)
         raise StorageError()
     return response["Body"]
+
 
 def delete_file(s3_key: str):
     try:
@@ -42,6 +46,7 @@ def delete_file(s3_key: str):
     except ClientError:
         logger.exception("storage_delete_failed s3_key=%s", s3_key)
         raise StorageError()
+
 
 def update_file(file: FileToUpdate):
     try:

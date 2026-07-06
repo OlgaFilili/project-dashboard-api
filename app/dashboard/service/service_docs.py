@@ -9,8 +9,9 @@ from app.dashboard.schemas import DocResponse, DocsResponse
 from app.dashboard.service.helpers import get_project_or_403, get_doc_or_403
 from app.dashboard.storage import upload_file, download_file, delete_file, update_file
 from app.dashboard.storage_models import FileToUpload, FileToUpdate
-from config.config import ALLOWED_DOCUMENT_TYPES
-from database.models import Document
+
+from app.config.config import ALLOWED_DOCUMENT_TYPES
+from app.database.models import Document
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +58,8 @@ async def get_document(session: AsyncSession, document_id: int, user_id: int) ->
     logger.info("document_download_started document_id=%s user_id=%s", document_id, user_id)
     doc = await get_doc_or_403(session, user_id, document_id)
     document_s3_key = doc.s3_key
-    file=download_file(document_s3_key)
-    logger.info( "document_download_finished document_id=%s user_id=%s", document_id, user_id)
+    file = download_file(document_s3_key)
+    logger.info("document_download_finished document_id=%s user_id=%s", document_id, user_id)
     return file, doc
 
 

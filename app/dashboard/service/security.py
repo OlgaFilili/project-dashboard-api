@@ -6,11 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dashboard.exceptions import UnauthorizedError
 from app.dashboard.repository import select_user_by_id
 from app.dashboard.service.helpers import pwd_context
-from config.config import SECRET_KEY
-from database.db import get_session
-from database.models import User
+
+from app.config.config import SECRET_KEY
+from app.database.db import get_session
+from app.database.models import User
 
 oauth2_scheme = HTTPBearer()
+
 
 def verify_password(password: str, hashed: str) -> bool:
     return pwd_context.verify(password, hashed)

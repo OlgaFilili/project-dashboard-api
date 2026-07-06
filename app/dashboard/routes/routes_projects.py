@@ -9,8 +9,8 @@ from app.dashboard.service.service_core import insert_project, get_projects, get
     add_user_to_project, get_project_documents
 from app.dashboard.service.security import get_current_user
 
-from database.db import get_session
-from database.models import User
+from app.database.db import get_session
+from app.database.models import User
 
 router = APIRouter(tags=["projects"])
 

@@ -13,8 +13,8 @@ from app.dashboard.schemas import UserRegister, UserResponse, ProjectResponse, P
 from app.dashboard.service.helpers import hash_password, get_project_or_403, get_project_for_owner
 from app.dashboard.service.security import verify_password
 
-from config.config import SECRET_KEY
-from database.models import User, Project, Member
+from app.config.config import SECRET_KEY
+from app.database.models import User, Project, Member
 
 
 async def insert_user(session: AsyncSession, user_data: UserRegister) -> UserResponse:

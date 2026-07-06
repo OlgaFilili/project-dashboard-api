@@ -3,9 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dashboard.exceptions import ProjectNotFoundError, NoAccessError, UserNotOwnerError, DocumentNotFoundError
 from app.dashboard.repository import select_project_by_id, select_members_by_project_id, select_document_by_id
-from database.models import Project, Document
+
+from app.database.models import Project, Document
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)

@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock
 
-from database.models import Project, User, Document
+from app.database.models import Project, User, Document
 
 
 @pytest.fixture
