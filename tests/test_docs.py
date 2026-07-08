@@ -1,13 +1,13 @@
-import pytest
 from datetime import datetime
 from io import BytesIO
 from unittest.mock import Mock
 
-from app.dashboard.exceptions import UnsupportedFileTypeError, StorageError
-from app.dashboard.schemas import DocsResponse
-from app.dashboard.service.service_docs import add_documents, get_document, del_document, put_document
-from app.dashboard.storage_models import UploadedFileInfo
+import pytest
 
+from app.dashboard.exceptions import StorageError, UnsupportedFileTypeError
+from app.dashboard.schemas import DocsResponse
+from app.dashboard.service.service_docs import add_documents, del_document, get_document, put_document
+from app.dashboard.storage_models import UploadedFileInfo
 from app.database.models import Document
 
 

@@ -1,15 +1,20 @@
+from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
-from datetime import datetime
 
-from app.dashboard.exceptions import UserNotFoundError, \
-    CannotInviteOwnerError, UserAlreadyHasAccessError
-from app.dashboard.schemas import ProjectCreate, ProjectInfo, UserProjects, ProjectUpdate, ProjectInvite
-from app.dashboard.service.service_core import insert_project, get_projects, get_project, \
-    update_project, del_project, add_user_to_project, \
-    get_project_documents
-from app.database.models import User, Document
+from app.dashboard.exceptions import CannotInviteOwnerError, UserAlreadyHasAccessError, UserNotFoundError
+from app.dashboard.schemas import ProjectCreate, ProjectInfo, ProjectInvite, ProjectUpdate, UserProjects
+from app.dashboard.service.service_core import (
+    add_user_to_project,
+    del_project,
+    get_project,
+    get_project_documents,
+    get_projects,
+    insert_project,
+    update_project,
+)
+from app.database.models import Document, User
 
 
 @pytest.mark.asyncio

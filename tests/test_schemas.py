@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.dashboard.schemas import ProjectCreate, UserRegister, ProjectInvite
+from app.dashboard.schemas import ProjectCreate, ProjectInvite, UserRegister
 
 
 def test_user_register_schema_empty_login():

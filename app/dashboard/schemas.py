@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 

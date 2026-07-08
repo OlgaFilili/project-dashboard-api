@@ -1,10 +1,9 @@
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dashboard.exceptions import ProjectNotFoundError, NoAccessError, UserNotOwnerError, DocumentNotFoundError
-from app.dashboard.repository import select_project_by_id, select_members_by_project_id, select_document_by_id
-
-from app.database.models import Project, Document
+from app.dashboard.exceptions import DocumentNotFoundError, NoAccessError, ProjectNotFoundError, UserNotOwnerError
+from app.dashboard.repository import select_document_by_id, select_members_by_project_id, select_project_by_id
+from app.database.models import Document, Project
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -24,7 +23,7 @@ async def get_project_or_403(session: AsyncSession, user_id: int, project_id: in
     project = await get_project_or_404(session, project_id)
     if project.owner_id != user_id:
         members = await select_members_by_project_id(session, project_id)
-        if not user_id in members:
+        if user_id not in members:
             raise NoAccessError()
     return project
 

@@ -2,12 +2,15 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dashboard.exceptions import NoAccessError, ProjectNotFoundError, UnsupportedFileTypeError, \
-    DocumentNotFoundError
-from app.dashboard.schemas import DocsResponse, DocResponse
+from app.dashboard.exceptions import (
+    DocumentNotFoundError,
+    NoAccessError,
+    ProjectNotFoundError,
+    UnsupportedFileTypeError,
+)
+from app.dashboard.schemas import DocResponse, DocsResponse
 from app.dashboard.service.security import get_current_user
-from app.dashboard.service.service_docs import add_documents, get_document, del_document, put_document
-
+from app.dashboard.service.service_docs import add_documents, del_document, get_document, put_document
 from app.database.db import get_session
 from app.database.models import User
 
