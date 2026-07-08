@@ -1,8 +1,9 @@
-import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock
 
-from app.database.models import Project, User, Document
+import pytest
+
+from app.database.models import Document, Project, User
 
 
 @pytest.fixture

@@ -10,10 +10,15 @@ A REST API for managing collaborative projects and their related documents.
 - PostgreSQL 14
 - MinIO (S3-compatible object storage)
 - PyJWT
-- Pytest (unit tests)
 - Docker & Docker Compose
-- AWS S3 (planned deployment)
-- AWS Lambda (planned)
+- AWS S3 (planned cloud object storage)
+- AWS Lambda (planned file processing)
+
+## Development Tools
+- uv for dependency management and virtual environment synchronization
+- Ruff for code linting and quality checks
+- Pytest for automated testing
+- GitHub Actions for CI pipeline (linting and test execution)
 
 ## Core Features
 - Data validation and serialization with Pydantic
@@ -22,29 +27,38 @@ A REST API for managing collaborative projects and their related documents.
 - Project access via owner and participants
 - Project invitations (add user to project)
 - Role-based access control (Owner / Participant)
-- Document upload, download, update and deletion via S3-compatible object storage
+- Document management with metadata stored in PostgreSQL and files stored in S3-compatible object storage
 
 ## API Overview
 ### Auth
-- `POST /auth` – Register a new user
-- `POST /login` – Authenticate user and return JWT token
+- `POST /auth` – Create user. (login, password, repeat password) 
+- `POST /login` – Login into service (login, password). Authenticate user and return JWT token
 
 ### Projects
-- `POST /projects` – Create project
-- `GET /projects` – Get user-accessible projects
-- `GET /project/{project_id}/info` – Get project details. Returns full project info (details + documents).  
-- `PUT /project/{project_id}/info` – Update project
-- `DELETE /project/{project_id}` – Delete project
-- `POST /project/{project_id}/invite` – Invite user to project
+- `POST /projects` – Create project from details (name, description). Automatically gives access to created project to user, making him the owner.
+- `GET /projects` – Get all projects, accessible for a user. Returns list of projects full info(details + documents).
+- `GET /project/{project_id}/info` – Return project’s details, if user has access.  
+- `PUT /project/{project_id}/info` – Update projects details - name, description. Returns the updated project’s info.
+- `DELETE /project/{project_id}` – Delete project, can only be performed by the projects’ owner. Deletes the corresponding  documents.
+- `POST /project/{project_id}/invite` – Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user
 
 ### Documents
-- `GET /project/{project_id}/documents` – List project documents
-- `POST /project/{project_id}/documents` – Upload documents
-- `GET /document/{document_id}` – Download document
-- `PUT /document/{document_id}` – Replace document
-- `DELETE /document/{document_id}` – Delete document
+- `GET /project/{project_id}/documents` – Return all the project's documents.
+- `POST /project/{project_id}/documents` – Upload document/documents for a specific project.
+- `GET /document/{document_id}` – Download document, if the user has access to the corresponding project.
+- `PUT /document/{document_id}` – Update document.
+- `DELETE /document/{document_id}` – Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3).
 
 See API_SPEC.md for the complete API specification.
+
+## Database Design
+The database schema is designed to separate entities and avoid unnecessary data duplication.
+
+- User information is stored separately in the `Users` table.
+- Project ownership is represented through the `owner_id` field in the `Projects` table. The owner is not duplicated in the project participants table.
+- Project participants are stored separately in the `Project_Members` table, which represents user access to projects and supports role-based permissions.
+- Documents are linked to projects through the `Documents` table. Only document metadata is stored in PostgreSQL, while the actual files are stored in S3-compatible object storage.
+- Foreign key relationships are used to maintain consistency between related entities.
 
 ## Testing
 Unit tests for the service layer:
@@ -53,11 +67,13 @@ Unit tests for the service layer:
 - Document management
 - Service helper functions
 
-Pytest used as test framework
+Tests are implemented using pytest and pytest-asyncio.
 
 ## Project Setup
 1. Environment Variables
-Create a .env file with the following variables:
+```text
+Create a `.env` file with the following variables:
+
 DATABASE_USER=
 DATABASE_PASSWORD=
 DATABASE_NAME=
@@ -67,15 +83,22 @@ MINIO_ENDPOINT=
 MINIO_ROOT_USER=
 MINIO_ROOT_PASSWORD=
 MINIO_BUCKET=
+```
+Do not commit `.env` files containing real credentials.
 
 2. Running the Application
+```text
 Build and start the containers:
 ```docker compose up --build```
 The API will be available at:
 http://localhost:8000
+```
 
 3. Project Structure
+```text
 .
+├── .github/workflows/
+│     └── ci.yml
 ├── app/
 │     ├── config/
 │     │     └── config.py
@@ -108,25 +131,24 @@ http://localhost:8000
 │     ├── test_projects.py
 │     ├── test_schemas.py
 │     └── test_service_helpers.py
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-├── README.md
 ├── API_SPEC.md
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
+├── README.md
+├── uv.lock
 └── .env
-
+```
 
 ## Planned Extensions
-- AWS S3 deployment (replace MinIO with AWS S3)
-- AWS Lambda processing
-- Alembic migrations
-- CI/CD pipeline
+- Migration from MinIO to AWS S3 for cloud object storage
+- AWS Lambda integration for S3 event-based file processing
 
 
 ## Notes
-- All responses are returned in JSON format except file downloads.
-- The API structure may evolve while preserving the planned functionality.
+- All API responses are returned in JSON format.
 - Authentication is required for all project-related endpoints.
-- The project follows a layered architecture separating API, business logic, database access and object storage.
-- Access control is enforced at service level.
-- Documents are stored in MinIO using the S3-compatible API.
+- The project follows a layered architecture separating API routes, business logic, database access and object storage operations.
+- Access control and permission checks are implemented at the service layer.
+- Documents metadata is stored in PostgreSQL, while document files are stored in MinIO using the S3-compatible API.
+- GitHub Actions automatically runs linting and tests on pull requests.

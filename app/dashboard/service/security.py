@@ -3,11 +3,10 @@ from fastapi import Depends
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config.config import SECRET_KEY
 from app.dashboard.exceptions import UnauthorizedError
 from app.dashboard.repository import select_user_by_id
 from app.dashboard.service.helpers import pwd_context
-
-from app.config.config import SECRET_KEY
 from app.database.db import get_session
 from app.database.models import User
 

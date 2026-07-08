@@ -1,15 +1,19 @@
+from datetime import datetime
+
 import jwt
 import pytest
-from datetime import datetime
 from fastapi.security import HTTPAuthorizationCredentials
 
-
-from app.dashboard.schemas import UserRegister, UserLogin
-from app.dashboard.service.service_core import insert_user, get_token
-from app.dashboard.service.security import get_current_user
-from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, InvalidCredentialsError, \
-    UnauthorizedError
 from app.config.config import SECRET_KEY
+from app.dashboard.exceptions import (
+    InvalidCredentialsError,
+    PasswordsMismatchError,
+    UnauthorizedError,
+    UserAlreadyExistsError,
+)
+from app.dashboard.schemas import UserLogin, UserRegister
+from app.dashboard.service.security import get_current_user
+from app.dashboard.service.service_core import get_token, insert_user
 
 
 @pytest.mark.asyncio

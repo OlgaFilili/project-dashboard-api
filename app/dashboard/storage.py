@@ -1,12 +1,12 @@
 import logging
-from botocore.exceptions import ClientError
-from botocore.response import StreamingBody
 from uuid import uuid4
 
-from app.dashboard.exceptions import StorageError
-from app.dashboard.storage_models import FileToUpload, UploadedFileInfo, FileToUpdate
+from botocore.exceptions import ClientError
+from botocore.response import StreamingBody
 
 from app.config.config import MINIO_BUCKET
+from app.dashboard.exceptions import StorageError
+from app.dashboard.storage_models import FileToUpdate, FileToUpload, UploadedFileInfo
 from app.object_storage.client import storage_client
 
 logger = logging.getLogger(__name__)

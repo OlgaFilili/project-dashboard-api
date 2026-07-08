@@ -1,14 +1,33 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dashboard.exceptions import NoAccessError, ProjectNotFoundError, UserNotOwnerError, UserNotFoundError, \
-    UserAlreadyHasAccessError, CannotInviteOwnerError
-from app.dashboard.schemas import ProjectResponse, ProjectCreate, UserProjects, ProjectInfo, ProjectUpdate, \
-    ProjectInvite, DocsResponse
-from app.dashboard.service.service_core import insert_project, get_projects, get_project, update_project, del_project, \
-    add_user_to_project, get_project_documents
+from app.dashboard.exceptions import (
+    CannotInviteOwnerError,
+    NoAccessError,
+    ProjectNotFoundError,
+    UserAlreadyHasAccessError,
+    UserNotFoundError,
+    UserNotOwnerError,
+)
+from app.dashboard.schemas import (
+    DocsResponse,
+    ProjectCreate,
+    ProjectInfo,
+    ProjectInvite,
+    ProjectResponse,
+    ProjectUpdate,
+    UserProjects,
+)
 from app.dashboard.service.security import get_current_user
-
+from app.dashboard.service.service_core import (
+    add_user_to_project,
+    del_project,
+    get_project,
+    get_project_documents,
+    get_projects,
+    insert_project,
+    update_project,
+)
 from app.database.db import get_session
 from app.database.models import User
 

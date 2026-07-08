@@ -1,20 +1,44 @@
-import jwt
 from datetime import datetime, timedelta, timezone
+
+import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dashboard.exceptions import PasswordsMismatchError, UserAlreadyExistsError, InvalidCredentialsError, \
-    UserNotFoundError, \
-    UserAlreadyHasAccessError, CannotInviteOwnerError
-from app.dashboard.repository import select_user_by_username, add_new_user, \
-    add_new_project, select_owned_projects, select_member_projects, select_members_by_project_id, insert_member, \
-    select_documents_by_project_id
-from app.dashboard.schemas import UserRegister, UserResponse, ProjectResponse, ProjectCreate, ProjectInfo, \
-    ProjectFullInfo, UserProjects, ProjectUpdate, UserLogin, ProjectInvite, DocsResponse, DocResponse
-from app.dashboard.service.helpers import hash_password, get_project_or_403, get_project_for_owner
-from app.dashboard.service.security import verify_password
-
 from app.config.config import SECRET_KEY
-from app.database.models import User, Project, Member
+from app.dashboard.exceptions import (
+    CannotInviteOwnerError,
+    InvalidCredentialsError,
+    PasswordsMismatchError,
+    UserAlreadyExistsError,
+    UserAlreadyHasAccessError,
+    UserNotFoundError,
+)
+from app.dashboard.repository import (
+    add_new_project,
+    add_new_user,
+    insert_member,
+    select_documents_by_project_id,
+    select_member_projects,
+    select_members_by_project_id,
+    select_owned_projects,
+    select_user_by_username,
+)
+from app.dashboard.schemas import (
+    DocResponse,
+    DocsResponse,
+    ProjectCreate,
+    ProjectFullInfo,
+    ProjectInfo,
+    ProjectInvite,
+    ProjectResponse,
+    ProjectUpdate,
+    UserLogin,
+    UserProjects,
+    UserRegister,
+    UserResponse,
+)
+from app.dashboard.service.helpers import get_project_for_owner, get_project_or_403, hash_password
+from app.dashboard.service.security import verify_password
+from app.database.models import Member, Project, User
 
 
 async def insert_user(session: AsyncSession, user_data: UserRegister) -> UserResponse:

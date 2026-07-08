@@ -1,7 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 
-from app.config.config import MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET
+from app.config.config import MINIO_BUCKET, MINIO_ENDPOINT, MINIO_ROOT_PASSWORD, MINIO_ROOT_USER
 
 storage_client = boto3.client(
     service_name="s3",
