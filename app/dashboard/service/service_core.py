@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -8,6 +9,7 @@ from app.dashboard.exceptions import (
     CannotInviteOwnerError,
     InvalidCredentialsError,
     PasswordsMismatchError,
+    StorageError,
     UserAlreadyExistsError,
     UserAlreadyHasAccessError,
     UserNotFoundError,
@@ -15,8 +17,10 @@ from app.dashboard.exceptions import (
 from app.dashboard.repository import (
     add_new_project,
     add_new_user,
+    delete_members_by_project_id,
     insert_member,
     select_documents_by_project_id,
+    select_documents_keys_by_project_id,
     select_member_projects,
     select_members_by_project_id,
     select_owned_projects,
@@ -38,7 +42,10 @@ from app.dashboard.schemas import (
 )
 from app.dashboard.service.helpers import get_project_for_owner, get_project_or_403, hash_password
 from app.dashboard.service.security import verify_password
+from app.dashboard.storage import delete_files
 from app.database.models import Member, Project, User
+
+logger = logging.getLogger(__name__)
 
 
 async def insert_user(session: AsyncSession, user_data: UserRegister) -> UserResponse:
@@ -112,8 +119,15 @@ async def update_project(session: AsyncSession, user_id: int, project_id: int,
 
 async def del_project(session: AsyncSession, user_id: int, project_id: int) -> None:
     project = await get_project_for_owner(session, user_id, project_id)
+    project_docs_keys = await select_documents_keys_by_project_id(session, project_id)
+    await delete_members_by_project_id(session, project_id)
     await session.delete(project)
     await session.commit()
+    if project_docs_keys:
+        try:
+            delete_files(project_docs_keys)
+        except StorageError:
+            logger.exception("Failed to cleanup project files project_id=%s", project_id)
 
 
 async def add_user_to_project(session: AsyncSession, user_id: int, project_id: int, username: ProjectInvite):

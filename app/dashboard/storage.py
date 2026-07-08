@@ -58,3 +58,16 @@ def update_file(file: FileToUpdate):
     except ClientError:
         logger.exception("storage_update_failed filename=%s", file.filename)
         raise StorageError()
+
+
+def delete_files(s3_keys: list[str]):
+    try:
+        response = storage_client.delete_objects(
+            Bucket=MINIO_BUCKET,
+            Delete={"Objects": [{"Key": key} for key in s3_keys]})
+        if response.get("Errors"):
+            logger.error("Some files were not deleted: %s", response["Errors"])
+            raise StorageError()
+    except ClientError:
+        logger.exception("storage_batch_delete_failed keys=%s", s3_keys)
+        raise StorageError()
