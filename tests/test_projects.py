@@ -1,9 +1,9 @@
 from datetime import datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from app.dashboard.exceptions import CannotInviteOwnerError, UserAlreadyHasAccessError, UserNotFoundError
+from app.dashboard.exceptions import CannotInviteOwnerError, StorageError, UserAlreadyHasAccessError, UserNotFoundError
 from app.dashboard.schemas import ProjectCreate, ProjectInfo, ProjectInvite, ProjectUpdate, UserProjects
 from app.dashboard.service.service_core import (
     add_user_to_project,
@@ -45,11 +45,11 @@ async def test_insert_project_success(project_factory, monkeypatch):
 async def test_get_projects_success(session, project_factory, monkeypatch):
     async def fake_select_owned_projects(*args, **kwargs):
         return [project_factory(
-                id=2,
-                name="Fast API project",
-                description="",
-                created_at=datetime(2026, 6, 1, 16, 0, 0),
-                owner_id=1)]
+            id=2,
+            name="Fast API project",
+            description="",
+            created_at=datetime(2026, 6, 1, 16, 0, 0),
+            owner_id=1)]
 
     async def fake_select_member_projects(*args, **kwargs):
         return [project_factory(
@@ -84,7 +84,7 @@ async def test_get_projects_success(session, project_factory, monkeypatch):
 
     result = await get_projects(session, user_id=1)
 
-    assert len(result.projects) ==2
+    assert len(result.projects) == 2
     project_2 = next(p for p in result.projects if p.project_id == 2)
     assert len(project_2.documents) == 1
     assert project_2.documents[0].document_id == 10
@@ -187,11 +187,90 @@ async def test_del_project_success(session, sample_project, monkeypatch):
     async def fake_get_project_for_owner(*args, **kwargs):
         return sample_project
 
+    async def fake_select_documents_keys_by_project_id(*args, **kwargs):
+        return ["doc1_s3_key", "doc2_s3_key"]
+
+    fake_delete_members_by_project_id = AsyncMock()
+
+    fake_delete_files = Mock()
+
     monkeypatch.setattr(
         "app.dashboard.service.service_core.get_project_for_owner",
         fake_get_project_for_owner)
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.select_documents_keys_by_project_id",
+        fake_select_documents_keys_by_project_id)
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.delete_files",
+        fake_delete_files)
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.delete_members_by_project_id",
+        fake_delete_members_by_project_id)
+
     await del_project(session=session, user_id=1, project_id=2)
 
+    fake_delete_members_by_project_id.assert_awaited_once_with(session, 2)
+    session.delete.assert_awaited_once_with(sample_project)
+    session.commit.assert_awaited_once()
+    fake_delete_files.assert_called_once_with(["doc1_s3_key", "doc2_s3_key"])
+
+
+@pytest.mark.asyncio
+async def test_del_project_storage_error(session, sample_project, monkeypatch):
+    async def fake_get_project_for_owner(*args, **kwargs):
+        return sample_project
+
+    async def fake_select_documents_keys_by_project_id(*args, **kwargs):
+        return ["doc1_s3_key", "doc2_s3_key"]
+
+    fake_delete_members_by_project_id = AsyncMock()
+
+    fake_delete_files = Mock(side_effect=StorageError())
+
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.get_project_for_owner",
+        fake_get_project_for_owner)
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.select_documents_keys_by_project_id",
+        fake_select_documents_keys_by_project_id)
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.delete_files",
+        fake_delete_files)
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.delete_members_by_project_id",
+        fake_delete_members_by_project_id)
+
+    await del_project(session=session, user_id=1, project_id=2)
+
+    fake_delete_members_by_project_id.assert_awaited_once_with(session, 2)
+    session.delete.assert_awaited_once_with(sample_project)
+    session.commit.assert_awaited_once()
+    fake_delete_files.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_del_project_no_docs(session, sample_project, monkeypatch):
+    async def fake_get_project_for_owner(*args, **kwargs):
+        return sample_project
+
+    async def fake_select_documents_keys_by_project_id(*args, **kwargs):
+        return []
+
+    fake_delete_members_by_project_id = AsyncMock()
+
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.get_project_for_owner",
+        fake_get_project_for_owner)
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.select_documents_keys_by_project_id",
+        fake_select_documents_keys_by_project_id)
+    monkeypatch.setattr(
+        "app.dashboard.service.service_core.delete_members_by_project_id",
+        fake_delete_members_by_project_id)
+
+    await del_project(session=session, user_id=1, project_id=2)
+
+    fake_delete_members_by_project_id.assert_awaited_once_with(session, 2)
     session.delete.assert_awaited_once_with(sample_project)
     session.commit.assert_awaited_once()
 
@@ -307,14 +386,13 @@ async def test_get_project_documents_success(sample_project, document_factory, m
 
     async def fake_select_documents_by_project_id(*args, **kwargs):
         return [document_factory(id=3),
-            document_factory(
-                id=4,
-                filename="report.docx",
-                s3_key="report_s3_key",
-                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                file_size=6400,
-                uploaded_at=datetime(2026, 5, 31, 12, 49, 57))]
-
+                document_factory(
+                    id=4,
+                    filename="report.docx",
+                    s3_key="report_s3_key",
+                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    file_size=6400,
+                    uploaded_at=datetime(2026, 5, 31, 12, 49, 57))]
 
     monkeypatch.setattr(
         "app.dashboard.service.service_core.get_project_or_403",
@@ -338,7 +416,6 @@ async def test_get_project_documents_no_docs(sample_project, document_factory, m
     async def fake_select_documents_by_project_id(*args, **kwargs):
         return []
 
-
     monkeypatch.setattr(
         "app.dashboard.service.service_core.get_project_or_403",
         fake_get_project_or_403)
@@ -349,4 +426,3 @@ async def test_get_project_documents_no_docs(sample_project, document_factory, m
     result = await get_project_documents(None, user_id=1, project_id=2)
 
     assert result.documents == []
-

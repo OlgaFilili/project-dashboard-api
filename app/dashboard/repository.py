@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Document, Member, Project, User
@@ -63,11 +63,21 @@ async def insert_docs(session: AsyncSession, docs: list[Document]) -> list[Docum
         await session.refresh(doc)
     return docs
 
+
 async def select_document_by_id(session: AsyncSession, document_id: int) -> Document | None:
     result = await session.execute(select(Document).where(Document.id == document_id))
     return result.scalar_one_or_none()
+
 
 async def select_documents_by_project_id(session: AsyncSession, project_id: int) -> list[Document]:
     result = await session.execute(select(Document).where(Document.project_id == project_id))
     return result.scalars().all()
 
+
+async def select_documents_keys_by_project_id(session: AsyncSession, project_id: int) -> list[str]:
+    result = await session.execute(select(Document.s3_key).where(Document.project_id == project_id))
+    return result.scalars().all()
+
+
+async def delete_members_by_project_id(session: AsyncSession, project_id: int) -> None:
+    await session.execute(delete(Member).where(Member.project_id == project_id))
