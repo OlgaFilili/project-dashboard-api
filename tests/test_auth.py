@@ -95,7 +95,9 @@ async def test_get_token_success(sample_user, monkeypatch):
 
     result = await get_token(None, user)
 
-    payload = jwt.decode(result, SECRET_KEY, algorithms=["HS256"])
+    assert result.token_type == "Bearer"
+
+    payload = jwt.decode(result.access_token, SECRET_KEY, algorithms=["HS256"])
 
     assert payload["user_id"] == 1
     assert "exp" in payload
@@ -152,13 +154,14 @@ async def test_get_current_user_success(sample_user, monkeypatch):
     payload = {
         "user_id": 1,
         "exp": datetime(2099, 1, 1, 0, 0, 0)}
-    access_token= jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    access_token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     credentials = HTTPAuthorizationCredentials(
         scheme="Bearer",
         credentials=access_token)
     result = await get_current_user(credentials, None)
 
     assert result is sample_user
+
 
 @pytest.mark.asyncio
 async def test_get_current_user_no_user(monkeypatch):
@@ -171,29 +174,31 @@ async def test_get_current_user_no_user(monkeypatch):
     payload = {
         "user_id": 10,
         "exp": datetime(2099, 1, 1, 0, 0, 0)}
-    access_token= jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    access_token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     credentials = HTTPAuthorizationCredentials(
         scheme="Bearer",
         credentials=access_token)
 
     with pytest.raises(UnauthorizedError):
         await get_current_user(credentials, None)
+
 
 @pytest.mark.asyncio
 async def test_get_current_user_expired_token(monkeypatch):
     payload = {
         "user_id": 1,
         "exp": datetime(2000, 1, 1, 0, 0, 0)}
-    access_token= jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    access_token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     credentials = HTTPAuthorizationCredentials(
         scheme="Bearer",
         credentials=access_token)
     with pytest.raises(UnauthorizedError):
         await get_current_user(credentials, None)
 
+
 @pytest.mark.asyncio
 async def test_get_current_user_invalid_token(monkeypatch):
-    access_token= "invalid_token"
+    access_token = "invalid_token"
     credentials = HTTPAuthorizationCredentials(
         scheme="Bearer",
         credentials=access_token)

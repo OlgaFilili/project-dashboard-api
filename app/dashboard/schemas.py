@@ -33,6 +33,11 @@ class UserResponse(APIModel):
     created_at: datetime
 
 
+class TokenResponse(APIModel):
+    access_token: str
+    token_type: str = "Bearer"
+
+
 class ProjectCreate(APIModel):
     name: str = Field(min_length=1)
     description: str | None = None
