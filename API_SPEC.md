@@ -39,8 +39,8 @@ Response: 201 Created
   "created_at": "2026-06-18T15:32:29Z"
 }
 Errors:
-422 Unprocessable Entity - Username and password required.
-422 Unprocessable Entity - Passwords do not match.
+422 Unprocessable Content - Username and password required.
+422 Unprocessable Content - Passwords do not match.
 409 Conflict - User already exists.
 
 
@@ -53,7 +53,8 @@ Request:
 }
 Response: 200 OK
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIs..."
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "Bearer"
 }
 Errors:
 401 Unauthorized - Invalid credentials.
@@ -80,7 +81,7 @@ Response: 201 Created
 
 Errors:
 401 Unauthorized - Invalid or expired token.
-422 Unprocessable Entity - Project’s name is required.
+422 Unprocessable Content - Project’s name is required.
 
 
 4. GET /projects
@@ -299,7 +300,7 @@ Request:
   "login": "Olga"
 }
 
-Response: 204 No Content
+Response: 200 Ok
 
 Errors:
 401 Unauthorized - Invalid or expired token.

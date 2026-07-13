@@ -80,11 +80,12 @@ async def delete_project(project_id: int, owner: User = Depends(get_current_user
         raise HTTPException(status_code=404, detail="Project not found")
 
 
-@router.post("/project/{project_id}/invite", status_code=204)
+@router.post("/project/{project_id}/invite", status_code=200, response_model=dict[str, str])
 async def invite_user(project_id: int, login: ProjectInvite, owner: User = Depends(get_current_user),
                       async_session: AsyncSession = Depends(get_session)):
     try:
-        return await add_user_to_project(async_session, owner.id, project_id, login)
+        await add_user_to_project(async_session, owner.id, project_id, login)
+        return {"detail": f"User with login '{login.login}' invited successfully"}
     except UserNotOwnerError:
         raise HTTPException(status_code=403, detail="User is not the project owner")
     except ProjectNotFoundError:
@@ -92,9 +93,10 @@ async def invite_user(project_id: int, login: ProjectInvite, owner: User = Depen
     except CannotInviteOwnerError:
         raise HTTPException(status_code=409, detail="Cannot invite the project owner")
     except UserNotFoundError:
-        raise HTTPException(status_code=404, detail=f"User with {login.login} does not exist")
+        raise HTTPException(status_code=404, detail=f"User with login '{login.login}' was not found")
     except UserAlreadyHasAccessError:
-        raise HTTPException(status_code=409, detail=f"User with {login.login} already has access to the project")
+        raise HTTPException(status_code=409,
+                            detail=f"User with login '{login.login}' already has access to the project")
 
 
 @router.get("/project/{project_id}/documents")

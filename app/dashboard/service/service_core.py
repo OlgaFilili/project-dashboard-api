@@ -35,6 +35,7 @@ from app.dashboard.schemas import (
     ProjectInvite,
     ProjectResponse,
     ProjectUpdate,
+    TokenResponse,
     UserLogin,
     UserProjects,
     UserRegister,
@@ -62,7 +63,7 @@ async def insert_user(session: AsyncSession, user_data: UserRegister) -> UserRes
     return UserResponse(user_id=new_user.id, login=new_user.username, created_at=new_user.created_at)
 
 
-async def get_token(session: AsyncSession, creds: UserLogin) -> str:
+async def get_token(session: AsyncSession, creds: UserLogin) -> TokenResponse:
     user = await select_user_by_username(session, creds.login)
     if not user:
         raise InvalidCredentialsError()
@@ -72,7 +73,7 @@ async def get_token(session: AsyncSession, creds: UserLogin) -> str:
         {"user_id": user.id, "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
         SECRET_KEY,
         algorithm="HS256")
-    return token
+    return TokenResponse(access_token=token)
 
 
 async def insert_project(session: AsyncSession, project_data: ProjectCreate, owner_id: int) -> ProjectResponse:
