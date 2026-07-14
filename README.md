@@ -8,11 +8,10 @@ A REST API for managing collaborative projects and their related documents.
 - SQLAlchemy 2.x (async ORM)
 - asyncpg
 - PostgreSQL 14
-- MinIO (S3-compatible object storage)
+- Amazon S3 (object storage)
 - PyJWT
 - Docker & Docker Compose
-- AWS S3 (planned cloud object storage)
-- AWS Lambda (planned file processing)
+- AWS Lambda (S3 event-based file validation)
 
 ## Development Tools
 - uv for dependency management and virtual environment synchronization
@@ -79,9 +78,9 @@ DATABASE_PASSWORD=
 DATABASE_NAME=
 DATABASE_HOST=
 SECRET_KEY=
-MINIO_ENDPOINT=
-MINIO_ROOT_USER=
-MINIO_ROOT_PASSWORD=
+AWS_REGION=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
 MINIO_BUCKET=
 ```
 Do not commit `.env` files containing real credentials.
@@ -140,9 +139,57 @@ http://localhost:8000
 └── .env
 ```
 
+## AWS Integration
+
+### Amazon S3
+The project uses Amazon S3 as object storage for documents.
+
+Uploaded documents are stored in an S3 bucket, while PostgreSQL keeps only document metadata:
+- filename
+- S3 object key
+- file size
+- content type
+- upload timestamp
+
+### AWS Lambda
+AWS Lambda is configured with an S3 event trigger.
+
+When a new document is uploaded to the bucket, Lambda receives an `ObjectCreated` event and validates the uploaded object's size.
+
+Current validation:
+- maximum allowed object size: 60 KB (demo limit)
+
+The validation result is written to Amazon CloudWatch Logs:
+- accepted files are logged as successful uploads;
+- files exceeding the limit are logged as warnings.
+
+```python
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+MAX_FILE_SIZE = 60 * 1024
+
+
+def lambda_handler(event, context):
+    for record in event["Records"]:
+        bucket = record["s3"]["bucket"]["name"]
+        key = record["s3"]["object"]["key"]
+        size = record["s3"]["object"]["size"]
+
+        if size > MAX_FILE_SIZE:
+            logger.warning(
+                "File size limit exceeded: bucket=%s key=%s size=%s bytes",
+                bucket, key, size)
+        else:
+            logger.info(
+                "File accepted: bucket=%s key=%s size=%s bytes",
+                bucket, key, size)
+```
+
 ## Planned Extensions
-- Migration from MinIO to AWS S3 for cloud object storage
-- AWS Lambda integration for S3 event-based file processing
+- Migration of deployment environment to AWS compute services (for example, ECS or EC2)
 
 
 ## Notes

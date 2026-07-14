@@ -10,7 +10,6 @@ from app.dashboard.routes.routes_docs import router as docs_router
 from app.dashboard.routes.routes_projects import router
 from app.database.db import init_db
 from app.logging_config import setup_logging
-from app.object_storage.client import init_storage
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    await init_storage()
     await init_db()
     yield
 
