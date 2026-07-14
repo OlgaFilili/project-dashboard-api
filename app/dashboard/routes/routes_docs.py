@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,7 +41,7 @@ async def download_document(document_id: int, user: User = Depends(get_current_u
         return StreamingResponse(
             body,
             media_type=doc.content_type,
-            headers={"Content-Disposition": f'attachment; filename="{doc.filename}"'})
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(doc.filename)}"})
     except DocumentNotFoundError:
         raise HTTPException(status_code=404, detail="Document not found")
     except NoAccessError:
