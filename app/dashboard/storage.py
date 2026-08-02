@@ -4,11 +4,13 @@ from uuid import uuid4
 from botocore.exceptions import ClientError
 from botocore.response import StreamingBody
 
-from app.config.config import MINIO_BUCKET
+from app.config import get_config
 from app.dashboard.exceptions import StorageError
 from app.dashboard.storage_models import FileToUpdate, FileToUpload, UploadedFileInfo
 from app.object_storage.client import storage_client
 
+config = get_config()
+MINIO_BUCKET = config.minio_bucket
 logger = logging.getLogger(__name__)
 
 

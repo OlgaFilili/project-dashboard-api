@@ -4,7 +4,7 @@ from botocore.response import StreamingBody
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config.config import ALLOWED_DOCUMENT_TYPES
+from app.config import get_config
 from app.dashboard.exceptions import UnsupportedFileTypeError
 from app.dashboard.repository import insert_docs
 from app.dashboard.schemas import DocResponse, DocsResponse
@@ -13,6 +13,8 @@ from app.dashboard.storage import delete_file, download_file, update_file, uploa
 from app.dashboard.storage_models import FileToUpdate, FileToUpload
 from app.database.models import Document
 
+config = get_config()
+ALLOWED_DOCUMENT_TYPES = config.allowed_document_types
 logger = logging.getLogger(__name__)
 
 

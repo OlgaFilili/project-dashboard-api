@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config.config import SECRET_KEY
+from app.config import get_config
 from app.dashboard.exceptions import (
     CannotInviteOwnerError,
     InvalidCredentialsError,
@@ -46,6 +46,8 @@ from app.dashboard.service.security import verify_password
 from app.dashboard.storage import delete_files
 from app.database.models import Member, Project, User
 
+config = get_config()
+SECRET_KEY = config.secret_key
 logger = logging.getLogger(__name__)
 
 

@@ -4,7 +4,7 @@ import jwt
 import pytest
 from fastapi.security import HTTPAuthorizationCredentials
 
-from app.config.config import SECRET_KEY
+from app.config import get_config
 from app.dashboard.exceptions import (
     InvalidCredentialsError,
     PasswordsMismatchError,
@@ -14,6 +14,9 @@ from app.dashboard.exceptions import (
 from app.dashboard.schemas import UserLogin, UserRegister
 from app.dashboard.service.security import get_current_user
 from app.dashboard.service.service_core import get_token, insert_user
+
+config = get_config()
+SECRET_KEY = config.secret_key
 
 
 @pytest.mark.asyncio
