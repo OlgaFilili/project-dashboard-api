@@ -11,8 +11,6 @@ A REST API for managing collaborative projects and their related documents.
 - MinIO (S3-compatible object storage)
 - PyJWT
 - Docker & Docker Compose
-- AWS S3 (planned cloud object storage)
-- AWS Lambda (planned file processing)
 
 ## Development Tools
 - uv for dependency management and virtual environment synchronization
@@ -44,9 +42,11 @@ A REST API for managing collaborative projects and their related documents.
 
 ### Documents
 - `GET /project/{project_id}/documents` – Return all the project's documents.
-- `POST /project/{project_id}/documents` – Upload document/documents for a specific project.
+- `POST /project/{project_id}/documents` – Generate presigned URLs for direct document/documents upload to storage.
+- `POST /project/{project_id}/documents/complete` – Complete document/documents upload for a specific project.
 - `GET /document/{document_id}` – Download document, if the user has access to the corresponding project.
-- `PUT /document/{document_id}` – Update document.
+- `PUT /document/{document_id}` – Generate a presigned URL for replacing the content of an existing document in storage.
+- `PUT /document/{document_id}/complete` – Complete document update.
 - `DELETE /document/{document_id}` – Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3).
 
 See API_SPEC.md for the complete API specification.
@@ -100,18 +100,16 @@ http://localhost:8000
 ├── .github/workflows/
 │     └── ci.yml
 ├── app/
-│     ├── config/
-│     │     └── config.py
 │     ├── dashboard/
 │     │     ├── routes.py 
-│     │     │     ├── routes_auth.py
-│     │     │     ├── routes_docs.py
-│     │     │     └── routes_projects.py
+│     │     │     ├── auth.py
+│     │     │     ├── docs.py
+│     │     │     └── projects.py
 │     │     └── service.py
+│     │     │     ├── docs.py
 │     │     │     ├── helpers.py
-│     │     │     ├── security.py
-│     │     │     ├── service_core.py
-│     │     │     └── service_docs.py
+│     │     │     ├── projects.py
+│     │     │     └── secutrity.py
 │     │     ├── exceptions.py
 │     │     ├── repository.py
 │     │     ├── schemas.py
@@ -122,6 +120,7 @@ http://localhost:8000
 │     │     └── models.py
 │     ├── object_storage/
 │     │     └── client.py
+│     ├── config.py
 │     ├── logging-config.py
 │     └── main.py
 ├── tests/
@@ -140,15 +139,13 @@ http://localhost:8000
 └── .env
 ```
 
-## Planned Extensions
-- Migration from MinIO to AWS S3 for cloud object storage
-- AWS Lambda integration for S3 event-based file processing
-
-
 ## Notes
 - All API responses are returned in JSON format.
 - Authentication is required for all project-related endpoints.
 - The project follows a layered architecture separating API routes, business logic, database access and object storage operations.
+Repository layer exists and is separated from business logic.
+Current implementation keeps repository methods grouped in a single module because of small project scale.
 - Access control and permission checks are implemented at the service layer.
 - Documents metadata is stored in PostgreSQL, while document files are stored in MinIO using the S3-compatible API.
+- Document uploads and updates use presigned URLs, allowing clients to upload files directly to MinIO storage without routing file data through the API server.
 - GitHub Actions automatically runs linting and tests on pull requests.

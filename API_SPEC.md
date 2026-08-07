@@ -17,9 +17,11 @@
 | PUT | /project/{project_id}/info | Update projects details - name, description. Returns the updated project’s info |
 | DELETE | /project/{project_id} | Delete project, can only be performed by the projects’ owner. Deletes the corresponding  documents |
 | GET | /project/{project_id}/documents | Return all the project's documents |
-| POST | /project/{project_id}/documents | Upload document/documents for a specific project |
+| POST | /project/{project_id}/documents | Generate presigned URLs for direct document/documents upload to storage |
+| POST | /project/{project_id}/documents/complete | Complete document/documents upload |
 | GET | /document/{document_id} | Download document, if the user has access to the corresponding project |
-| PUT | /document/{document_id} | Update document |
+| PUT | /document/{document_id} | Generate a presigned URL for replacing the content of an existing document in storage |
+| PUT | /document/{document_id}/complete | Complete document update |
 | DELETE | /document/{document_id} | Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3) |
 | POST | /project/{project_id}/invite | Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user |
 
@@ -177,6 +179,7 @@ Errors:
 403 Forbidden - User is not the project owner.
 404 Not Found - Project not found.
 
+
 8. GET /project/{project_id}/documents
 
 Authorization header:
@@ -199,33 +202,46 @@ Errors:
 403 Forbidden - User has no access to the project.
 404 Not Found - Project not found.
 
-9. POST /project/{project_id}/documents
+
+9. POST /project/{project_id}/documents - Generate presigned URLs for direct document/documents upload to storage
 
 Authorization header:
 Bearer <access_token>
 
-Content-Type: multipart/form-data
-files: spec.pdf
-files: report.docx
-
 Constraints:
 - Only .pdf and .docx files are allowed
 
+Note:
+- The client should upload files directly to the provided URLs before calling /documents/complete.
 
-Response: 201 Created
+Request:
 {
-  "documents": [
+  "files": [
     {
-	  "document_id": 2, 
-	  "filename": "spec.pdf",
-	  "size": 2048
-	  "uploaded_at": "2026-06-19T17:16:23Z"
+      "filename": "spec.pdf",
+      "content_type": "application/pdf"
+    },
+    {
+      "filename": "report.docx",
+      "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }
+  ]
+}
+
+Response: 200 OK
+{
+  "files": [
+    {
+      "filename": "spec.pdf",
+      "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd15",
+      "upload_url": "<presigned-upload-url>",
+      "content_type": "application/pdf"
     },
 	{
-	  "document_id": 3, 
-	  "filename": "report.docx",
-	  "size": 8192
-	  "uploaded_at": "2026-06-19T17:16:57Z"
+      "filename": "report.docx",
+      "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd16",
+      "upload_url": "<presigned-upload-url>",
+      "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     }
   ]
 }
@@ -237,7 +253,58 @@ Errors:
 415 Unsupported Media Type - File type not supported.
 
 
-10. GET /document/{document_id} - Download document, if the user has access to the corresponding project
+10. POST /project/{project_id}/documents/complete - Confirm uploaded files and creates corresponding document records in the database.
+
+Authorization header:
+Bearer <access_token>
+
+Constraints:
+- Only uploaded files with supported content types (.pdf and .docx) are accepted.
+
+Request:
+{
+  "files": [
+    {
+      "filename": "spec.pdf",
+      "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd15",
+      "content_type": "application/pdf"
+    },
+	{
+      "filename": "report.docx",
+      "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd16",
+      "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }
+  ]
+}
+
+Response: 201 Created
+{
+  "documents": [
+    {
+	  "document_id": 2, 
+	  "filename": "spec.pdf",
+	  "size": 2048,
+	  "uploaded_at": "2026-06-19T17:16:23Z"
+    },
+	{
+	  "document_id": 3, 
+	  "filename": "report.docx",
+	  "size": 8192,
+	  "uploaded_at": "2026-06-19T17:16:57Z"
+    }
+  ]
+}
+
+Errors:
+401 Unauthorized - Invalid or expired token.
+403 Forbidden - User has no access to the project.
+404 Not Found - Project not found.
+400 Bad Request - Uploaded file was not found in storage.
+409 Conflict - Uploaded file metadata mismatch.
+415 Unsupported Media Type - File type not supported.
+
+
+11. GET /document/{document_id} - Download document, if the user has access to the corresponding project
 
 Authorization header:
 Bearer <access_token>
@@ -252,23 +319,26 @@ Errors:
 404 Not Found - Document not found.
 
 
-11. PUT /document/{document_id} - Update document
+12. PUT /document/{document_id} - Generate a presigned URL for replacing the content of an existing document in storage
 
 Authorization header:
 Bearer <access_token>
 
-Content-Type: multipart/form-data
-files: spec.pdf
-
 Constraints:
 - Only .pdf and .docx files are allowed
 
+Note:
+- The client should upload the updated file directly to the provided storage URL before calling /document/{document_id}/complete.
+
+Request:
+{
+  "content_type": "application/pdf"
+}
+
 Response: 200 OK
 {
-  "document_id": <document_id>, 
-  "filename": "spec_new.pdf",
-  "size": 4096
-  "uploaded_at": "2026-06-19T18:08:37Z"
+  "content_type": "application/pdf",
+  "update_url": "<presigned-update-url>"
 }
 
 Errors:
@@ -277,7 +347,41 @@ Errors:
 404 Not Found - Document not found.
 415 Unsupported Media Type - File type not supported.
 
-12. DELETE /document/{document_id}
+
+13. PUT /document/{document_id}/complete - Updates document metadata after the file content has been replaced in storage
+
+Authorization header:
+Bearer <access_token>
+
+Constraints:
+- Only file with supported content types (.pdf and .docx) are accepted.
+
+Note:
+- The document ID, uploaded_at timestamp, and storage key remain unchanged.
+
+Request:
+{
+  "filename": "spec_new.pdf",
+  "content_type": "application/pdf"
+}
+
+Response: 200 OK
+{
+  "document_id": <document_id>, 
+  "filename": "spec_new.pdf",
+  "size": 4096,
+  "uploaded_at": "2026-06-19T18:08:37Z"
+}
+
+Errors:
+401 Unauthorized - Invalid or expired token.
+403 Forbidden - User has no access to the corresponding project.
+404 Not Found - Document not found.
+409 Conflict - Updated file metadata mismatch.
+415 Unsupported Media Type - File type not supported.
+
+
+14. DELETE /document/{document_id}
 
 Authorization header:
 Bearer <access_token>
@@ -290,7 +394,7 @@ Errors:
 404 Not Found - Document not found.
 
 
-13. POST /project/{project_id}/invite - Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user.
+15. POST /project/{project_id}/invite - Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user.
 
 Authorization header:
 Bearer <access_token>

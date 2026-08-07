@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dashboard.exceptions import InvalidCredentialsError, PasswordsMismatchError, UserAlreadyExistsError
 from app.dashboard.schemas import UserLogin, UserRegister, UserResponse
-from app.dashboard.service.service_core import get_token, insert_user
+from app.dashboard.service.projects import get_token, insert_user
 from app.database.db import get_session
 
 router = APIRouter(tags=["users"])

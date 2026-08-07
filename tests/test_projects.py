@@ -5,7 +5,7 @@ import pytest
 
 from app.dashboard.exceptions import CannotInviteOwnerError, StorageError, UserAlreadyHasAccessError, UserNotFoundError
 from app.dashboard.schemas import ProjectCreate, ProjectInfo, ProjectInvite, ProjectUpdate, UserProjects
-from app.dashboard.service.service_core import (
+from app.dashboard.service.projects import (
     add_user_to_project,
     del_project,
     get_project,
@@ -26,7 +26,7 @@ async def test_insert_project_success(project_factory, monkeypatch):
             owner_id=1)
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.add_new_project",
+        "app.dashboard.service.projects.add_new_project",
         fake_add_new_project)
 
     project = ProjectCreate(
@@ -73,13 +73,13 @@ async def test_get_projects_success(session, project_factory, monkeypatch):
         return []
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_owned_projects",
+        "app.dashboard.service.projects.select_owned_projects",
         fake_select_owned_projects)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_member_projects",
+        "app.dashboard.service.projects.select_member_projects",
         fake_select_member_projects)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_documents_by_project_id",
+        "app.dashboard.service.projects.select_documents_by_project_id",
         fake_select_documents_by_project_id)
 
     result = await get_projects(session, user_id=1)
@@ -101,10 +101,10 @@ async def test_get_projects_returns_empty_list(monkeypatch):
         return []
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_owned_projects",
+        "app.dashboard.service.projects.select_owned_projects",
         fake_select_owned_projects)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_member_projects",
+        "app.dashboard.service.projects.select_member_projects",
         fake_select_member_projects)
 
     result = await get_projects(None, user_id=2)
@@ -118,7 +118,7 @@ async def test_get_project_success(sample_project, monkeypatch):
         return sample_project
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_or_403",
+        "app.dashboard.service.projects.get_project_or_403",
         fake_get_project_or_403)
 
     result = await get_project(None, user_id=1, project_id=2)
@@ -140,7 +140,7 @@ async def test_update_project_description_success(session, project_factory, monk
             description="Old description")
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_or_403",
+        "app.dashboard.service.projects.get_project_or_403",
         fake_get_project_or_403)
     result = await update_project(
         session=session, user_id=1, project_id=2,
@@ -163,7 +163,7 @@ async def test_update_project_info_success(session, project_factory, monkeypatch
             description="Old description")
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_or_403",
+        "app.dashboard.service.projects.get_project_or_403",
         fake_get_project_or_403)
     result = await update_project(
         session=session, user_id=1, project_id=2,
@@ -195,16 +195,16 @@ async def test_del_project_success(session, sample_project, monkeypatch):
     fake_delete_files = Mock()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_for_owner",
+        "app.dashboard.service.projects.get_project_for_owner",
         fake_get_project_for_owner)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_documents_keys_by_project_id",
+        "app.dashboard.service.projects.select_documents_keys_by_project_id",
         fake_select_documents_keys_by_project_id)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.delete_files",
+        "app.dashboard.service.projects.delete_files",
         fake_delete_files)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.delete_members_by_project_id",
+        "app.dashboard.service.projects.delete_members_by_project_id",
         fake_delete_members_by_project_id)
 
     await del_project(session=session, user_id=1, project_id=2)
@@ -228,16 +228,16 @@ async def test_del_project_storage_error(session, sample_project, monkeypatch):
     fake_delete_files = Mock(side_effect=StorageError())
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_for_owner",
+        "app.dashboard.service.projects.get_project_for_owner",
         fake_get_project_for_owner)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_documents_keys_by_project_id",
+        "app.dashboard.service.projects.select_documents_keys_by_project_id",
         fake_select_documents_keys_by_project_id)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.delete_files",
+        "app.dashboard.service.projects.delete_files",
         fake_delete_files)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.delete_members_by_project_id",
+        "app.dashboard.service.projects.delete_members_by_project_id",
         fake_delete_members_by_project_id)
 
     await del_project(session=session, user_id=1, project_id=2)
@@ -259,13 +259,13 @@ async def test_del_project_no_docs(session, sample_project, monkeypatch):
     fake_delete_members_by_project_id = AsyncMock()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_for_owner",
+        "app.dashboard.service.projects.get_project_for_owner",
         fake_get_project_for_owner)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_documents_keys_by_project_id",
+        "app.dashboard.service.projects.select_documents_keys_by_project_id",
         fake_select_documents_keys_by_project_id)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.delete_members_by_project_id",
+        "app.dashboard.service.projects.delete_members_by_project_id",
         fake_delete_members_by_project_id)
 
     await del_project(session=session, user_id=1, project_id=2)
@@ -292,16 +292,16 @@ async def test_add_user_to_project_success(sample_project, monkeypatch):
 
     fake_insert_member = AsyncMock()
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_for_owner",
+        "app.dashboard.service.projects.get_project_for_owner",
         fake_get_project_for_owner)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_user_by_username",
+        "app.dashboard.service.projects.select_user_by_username",
         fake_select_user_by_username)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_members_by_project_id",
+        "app.dashboard.service.projects.select_members_by_project_id",
         fake_select_members_by_project_id)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.insert_member",
+        "app.dashboard.service.projects.insert_member",
         fake_insert_member)
 
     await add_user_to_project(None, user_id=1, project_id=2, username=ProjectInvite(login="Bob"))
@@ -321,10 +321,10 @@ async def test_add_user_to_project_user_not_found(sample_project, monkeypatch):
         return None
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_for_owner",
+        "app.dashboard.service.projects.get_project_for_owner",
         fake_get_project_for_owner)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_user_by_username",
+        "app.dashboard.service.projects.select_user_by_username",
         fake_select_user_by_username)
 
     with pytest.raises(UserNotFoundError):
@@ -340,10 +340,10 @@ async def test_add_user_to_project_user_is_owner(sample_user, sample_project, mo
         return sample_user
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_for_owner",
+        "app.dashboard.service.projects.get_project_for_owner",
         fake_get_project_for_owner)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_user_by_username",
+        "app.dashboard.service.projects.select_user_by_username",
         fake_select_user_by_username)
 
     with pytest.raises(CannotInviteOwnerError):
@@ -366,13 +366,13 @@ async def test_add_user_to_project_user_already_member(sample_project, monkeypat
         return [2, 5]
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_for_owner",
+        "app.dashboard.service.projects.get_project_for_owner",
         fake_get_project_for_owner)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_user_by_username",
+        "app.dashboard.service.projects.select_user_by_username",
         fake_select_user_by_username)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_members_by_project_id",
+        "app.dashboard.service.projects.select_members_by_project_id",
         fake_select_members_by_project_id)
 
     with pytest.raises(UserAlreadyHasAccessError):
@@ -395,10 +395,10 @@ async def test_get_project_documents_success(sample_project, document_factory, m
                     uploaded_at=datetime(2026, 5, 31, 12, 49, 57))]
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_or_403",
+        "app.dashboard.service.projects.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_documents_by_project_id",
+        "app.dashboard.service.projects.select_documents_by_project_id",
         fake_select_documents_by_project_id)
 
     result = await get_project_documents(None, user_id=1, project_id=2)
@@ -417,10 +417,10 @@ async def test_get_project_documents_no_docs(sample_project, document_factory, m
         return []
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.get_project_or_403",
+        "app.dashboard.service.projects.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_core.select_documents_by_project_id",
+        "app.dashboard.service.projects.select_documents_by_project_id",
         fake_select_documents_by_project_id)
 
     result = await get_project_documents(None, user_id=1, project_id=2)
