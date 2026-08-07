@@ -18,8 +18,7 @@ from app.dashboard.schemas import (
     ProjectUpdate,
     UserProjects,
 )
-from app.dashboard.service.security import get_current_user
-from app.dashboard.service.service_core import (
+from app.dashboard.service.projects import (
     add_user_to_project,
     del_project,
     get_project,
@@ -28,6 +27,7 @@ from app.dashboard.service.service_core import (
     insert_project,
     update_project,
 )
+from app.dashboard.service.security import get_current_user
 from app.database.db import get_session
 from app.database.models import User
 

@@ -5,7 +5,7 @@ import pytest
 
 from app.dashboard.exceptions import CannotInviteOwnerError, StorageError, UserAlreadyHasAccessError, UserNotFoundError
 from app.dashboard.schemas import ProjectCreate, ProjectInfo, ProjectInvite, ProjectUpdate, UserProjects
-from app.dashboard.service.service_core import (
+from app.dashboard.service.projects import (
     add_user_to_project,
     del_project,
     get_project,

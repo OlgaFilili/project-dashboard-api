@@ -12,8 +12,8 @@ from app.dashboard.exceptions import (
     UserAlreadyExistsError,
 )
 from app.dashboard.schemas import UserLogin, UserRegister
+from app.dashboard.service.projects import get_token, insert_user
 from app.dashboard.service.security import get_current_user
-from app.dashboard.service.service_core import get_token, insert_user
 
 config = get_config()
 SECRET_KEY = config.secret_key
