@@ -49,5 +49,14 @@ class StorageError(ServiceError):
 class UnsupportedFileTypeError(ServiceError):
     pass
 
+
 class DocumentNotFoundError(ServiceError):
+    pass
+
+
+class UploadedFileNotFoundError(ServiceError):
+    pass
+
+
+class FileMetadataMismatchError(ServiceError):
     pass

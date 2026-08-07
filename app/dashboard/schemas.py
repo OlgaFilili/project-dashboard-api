@@ -55,6 +55,20 @@ class ProjectUpdate(APIModel):
     description: str | None = None
 
 
+class ProjectInfo(APIModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    project_id: int = Field(validation_alias="id")
+    name: str
+    description: str
+    created_at: datetime
+    owner_id: int
+
+
+class ProjectInvite(APIModel):
+    login: str = Field(min_length=1)
+
+
 class DocResponse(APIModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -68,16 +82,6 @@ class DocsResponse(APIModel):
     documents: list[DocResponse]
 
 
-class ProjectInfo(APIModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
-
-    project_id: int = Field(validation_alias="id")
-    name: str
-    description: str
-    created_at: datetime
-    owner_id: int
-
-
 class ProjectFullInfo(ProjectInfo):
     documents: list[DocResponse] = Field(default_factory=list)
 
@@ -86,5 +90,44 @@ class UserProjects(APIModel):
     projects: list[ProjectFullInfo] = Field(default_factory=list)
 
 
-class ProjectInvite(APIModel):
-    login: str = Field(min_length=1)
+class FileRequest(APIModel):
+    filename: str
+    content_type: str
+
+
+class UploadsRequest(APIModel):
+    files: list[FileRequest] = Field(default_factory=list)
+
+
+class UploadResponse(APIModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    filename: str
+    s3_key: str
+    content_type: str
+    upload_url: str
+
+
+class UploadsResponse(APIModel):
+    files: list[UploadResponse] = Field(default_factory=list)
+
+
+class StorageRequest(APIModel):
+    filename: str
+    s3_key: str
+    content_type: str
+
+
+class StoragesRequest(APIModel):
+    files: list[StorageRequest] = Field(default_factory=list)
+
+
+class UpdateRequest(APIModel):
+    content_type: str
+
+
+class UpdateResponse(APIModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    content_type: str
+    update_url: str
