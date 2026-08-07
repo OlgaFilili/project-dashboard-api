@@ -52,13 +52,13 @@ async def test_add_documents_success(sample_project, monkeypatch):
             uploaded_at=datetime(2026, 6, 3, 12, 0, 0))]
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_file_metadata",
+        "app.dashboard.service.docs.get_file_metadata",
         fake_get_file_metadata)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.insert_docs",
+        "app.dashboard.service.docs.insert_docs",
         fake_insert_docs)
 
     storage_request = StoragesRequest(files=[StorageRequest(
@@ -82,7 +82,7 @@ async def test_add_documents_unsupported_file_type(sample_project, monkeypatch):
         return sample_project
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
 
     storage_request = StoragesRequest(files=[StorageRequest(
@@ -105,10 +105,10 @@ async def test_add_documents_file_metadata_mismatch(sample_project, monkeypatch)
             file_size=4400)
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_file_metadata",
+        "app.dashboard.service.docs.get_file_metadata",
         fake_get_file_metadata)
 
     storage_request = StoragesRequest(files=[StorageRequest(
@@ -129,10 +129,10 @@ async def test_add_documents_storage_error(sample_project, monkeypatch):
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_file_metadata",
+        "app.dashboard.service.docs.get_file_metadata",
         fake_get_file_metadata)
 
     storage_request = StoragesRequest(files=[StorageRequest(
@@ -153,10 +153,10 @@ async def test_add_documents_uploaded_file_not_found(sample_project, monkeypatch
         raise UploadedFileNotFoundError()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_file_metadata",
+        "app.dashboard.service.docs.get_file_metadata",
         fake_get_file_metadata)
 
     storage_request = StoragesRequest(files=[StorageRequest(
@@ -184,10 +184,10 @@ async def test_prepare_for_uploads_success(sample_project, monkeypatch):
     fake_generate_upload_url = MagicMock(side_effect=fake_generate_upload_url_impl)
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.generate_upload_url",
+        "app.dashboard.service.docs.generate_upload_url",
         fake_generate_upload_url)
 
     storage_request = UploadsRequest(
@@ -218,7 +218,7 @@ async def test_prepare_for_uploads_unsupported_file_type(sample_project, monkeyp
         return sample_project
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
 
     storage_request = UploadsRequest(
@@ -239,10 +239,10 @@ async def test_prepare_for_uploads_storage_error(sample_project, monkeypatch):
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.generate_upload_url",
+        "app.dashboard.service.docs.generate_upload_url",
         fake_generate_upload_url)
 
     storage_request = UploadsRequest(
@@ -268,13 +268,13 @@ async def test_get_document_success(sample_document, sample_project, monkeypatch
         return stream
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.download_file",
+        "app.dashboard.service.docs.download_file",
         fake_download_file)
 
     result = await get_document(None, document_id=3, user_id=1)
@@ -296,13 +296,13 @@ async def test_get_document_storage_error(sample_document, sample_project, monke
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_project_or_403",
+        "app.dashboard.service.docs.get_project_or_403",
         fake_get_project_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.download_file",
+        "app.dashboard.service.docs.download_file",
         fake_download_file)
 
     with pytest.raises(StorageError):
@@ -317,10 +317,10 @@ async def test_del_document_success(session, sample_document, monkeypatch):
     fake_delete_file = Mock()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.delete_file",
+        "app.dashboard.service.docs.delete_file",
         fake_delete_file)
 
     await del_document(session=session, document_id=3, user_id=1)
@@ -339,10 +339,10 @@ async def test_del_document_storage_error(sample_document, monkeypatch):
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.delete_file",
+        "app.dashboard.service.docs.delete_file",
         fake_delete_file)
 
     with pytest.raises(StorageError):
@@ -360,10 +360,10 @@ async def test_put_document_success(session, sample_document, monkeypatch):
             file_size=4400)
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_file_metadata",
+        "app.dashboard.service.docs.get_file_metadata",
         fake_get_file_metadata)
 
     request = FileRequest(
@@ -385,7 +385,7 @@ async def test_put_document_unsupported_file_type(sample_document, monkeypatch):
         return sample_document
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
 
     request = FileRequest(
@@ -407,10 +407,10 @@ async def test_put_document_file_metadata_mismatch(sample_document, monkeypatch)
             file_size=4400)
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_file_metadata",
+        "app.dashboard.service.docs.get_file_metadata",
         fake_get_file_metadata)
 
     request = FileRequest(
@@ -430,10 +430,10 @@ async def test_put_document_storage_error(sample_document, monkeypatch):
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_file_metadata",
+        "app.dashboard.service.docs.get_file_metadata",
         fake_get_file_metadata)
 
     request = FileRequest(
@@ -453,10 +453,10 @@ async def test_put_document_uploaded_file_not_found(sample_document, monkeypatch
         raise UploadedFileNotFoundError()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_file_metadata",
+        "app.dashboard.service.docs.get_file_metadata",
         fake_get_file_metadata)
 
     request = FileRequest(
@@ -478,10 +478,10 @@ async def test_prepare_for_update_success(sample_document, monkeypatch):
     fake_generate_update_url = MagicMock(side_effect=fake_generate_update_url_impl)
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.generate_update_url",
+        "app.dashboard.service.docs.generate_update_url",
         fake_generate_update_url)
 
     content_type = "application/pdf"
@@ -499,7 +499,7 @@ async def test_prepare_for_update_unsupported_file_type(sample_document, monkeyp
         return sample_document
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
 
     content_type = "text/plain"
@@ -517,10 +517,10 @@ async def test_prepare_for_update_storage_error(sample_document, monkeypatch):
         raise StorageError()
 
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.get_doc_or_403",
+        "app.dashboard.service.docs.get_doc_or_403",
         fake_get_doc_or_403)
     monkeypatch.setattr(
-        "app.dashboard.service.service_docs.generate_update_url",
+        "app.dashboard.service.docs.generate_update_url",
         fake_generate_update_url)
 
     content_type = "application/pdf"
