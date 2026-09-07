@@ -61,13 +61,18 @@ The database schema is designed to separate entities and avoid unnecessary data 
 - Foreign key relationships are used to maintain consistency between related entities.
 
 ## Testing
-Unit tests for the service layer:
+The project contains both unit and integration tests implemented with pytest and pytest-asyncio.
+Unit tests cover the service layer and helper functions, including:
 - Authentication
 - Project management
 - Document management
 - Service helper functions
 
-Tests are implemented using pytest and pytest-asyncio.
+Integration tests cover the interaction between the API and the application's infrastructure:
+- Project management endpoints
+- Document management endpoints
+- User invitation and project access
+Integration tests require a local PostgreSQL test database and MinIO instance and are run locally rather than in CI.
 
 ## Project Setup
 1. Environment Variables
@@ -83,6 +88,8 @@ MINIO_ENDPOINT=
 MINIO_ROOT_USER=
 MINIO_ROOT_PASSWORD=
 MINIO_BUCKET=
+TEST_HOST=127.0.0.1               # Host for integration-test services
+TEST_DATABASE_NAME=dashboard_test # PostgreSQL database used by integration tests
 ```
 Do not commit `.env` files containing real credentials.
 
@@ -101,15 +108,15 @@ http://localhost:8000
 │     └── ci.yml
 ├── app/
 │     ├── dashboard/
-│     │     ├── routes.py 
+│     │     ├── routes/
 │     │     │     ├── auth.py
 │     │     │     ├── docs.py
 │     │     │     └── projects.py
-│     │     └── service.py
+│     │     └── service/
 │     │     │     ├── docs.py
 │     │     │     ├── helpers.py
 │     │     │     ├── projects.py
-│     │     │     └── secutrity.py
+│     │     │     └── security.py
 │     │     ├── exceptions.py
 │     │     ├── repository.py
 │     │     ├── schemas.py
@@ -124,6 +131,11 @@ http://localhost:8000
 │     ├── logging-config.py
 │     └── main.py
 ├── tests/
+│     ├── integration/
+│     │     ├── conftest.py
+│     │     ├── test_integration_docs.py
+│     │     ├── test_integration_projects.py
+│     │     └── test_integration_user_invite.py
 │     ├── conftest.py
 │     ├── test_auth.py
 │     ├── test_docs.py
@@ -142,9 +154,9 @@ http://localhost:8000
 ## Notes
 - All API responses are returned in JSON format.
 - Authentication is required for all project-related endpoints.
-- The project follows a layered architecture separating API routes, business logic, database access and object storage operations.
-Repository layer exists and is separated from business logic.
-Current implementation keeps repository methods grouped in a single module because of small project scale.
+- The project follows a layered architecture separating API routes, business logic, database access and object storage operations:
+  - Repository layer exists and is separated from business logic.
+  - Current implementation keeps repository methods grouped in a single module because of small project scale.
 - Access control and permission checks are implemented at the service layer.
 - Documents metadata is stored in PostgreSQL, while document files are stored in MinIO using the S3-compatible API.
 - Document uploads and updates use presigned URLs, allowing clients to upload files directly to MinIO storage without routing file data through the API server.
