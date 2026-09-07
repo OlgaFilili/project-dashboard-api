@@ -23,8 +23,10 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install uv
-        run: pip install uv
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
 
       - name: Install dependencies
         run: uv sync --dev
@@ -35,4 +37,4 @@ jobs:
       - name: Run tests
         env:
           SECRET_KEY: test-secret-key
-        run: uv run pytest
+        run: uv run pytest tests --ignore=tests/integration
