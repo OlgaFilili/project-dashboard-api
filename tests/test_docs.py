@@ -1,6 +1,6 @@
 from datetime import datetime
 from io import BytesIO
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 import pytest
 
@@ -181,7 +181,7 @@ async def test_prepare_for_uploads_success(sample_project, monkeypatch):
             content_type=request.content_type,
         )
 
-    fake_generate_upload_url = MagicMock(side_effect=fake_generate_upload_url_impl)
+    fake_generate_upload_url = Mock(side_effect=fake_generate_upload_url_impl)
 
     monkeypatch.setattr(
         "app.dashboard.service.docs.get_project_or_403",
@@ -475,7 +475,7 @@ async def test_prepare_for_update_success(sample_document, monkeypatch):
     def fake_generate_update_url_impl(*args, **kwargs):
         return "http://test.url"
 
-    fake_generate_update_url = MagicMock(side_effect=fake_generate_update_url_impl)
+    fake_generate_update_url = Mock(side_effect=fake_generate_update_url_impl)
 
     monkeypatch.setattr(
         "app.dashboard.service.docs.get_doc_or_403",
