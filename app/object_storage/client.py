@@ -5,11 +5,17 @@ from app.config import get_config
 
 config = get_config()
 
-storage_client = boto3.client(
-    service_name="s3",
-    endpoint_url=f"http://{config.storage_endpoint}",
-    aws_access_key_id=config.storage_access_key,
-    aws_secret_access_key=config.storage_secret_key,)
+if config.storage_endpoint:
+    storage_client = boto3.client(
+        service_name="s3",
+        endpoint_url=f"http://{config.storage_endpoint}",
+        aws_access_key_id=config.storage_access_key,
+        aws_secret_access_key=config.storage_secret_key)
+else:
+    storage_client = boto3.client(
+        service_name="s3",
+        endpoint_url=f"https://s3.{config.aws_region}.amazonaws.com",
+        region_name=config.aws_region)
 
 
 async def init_storage():

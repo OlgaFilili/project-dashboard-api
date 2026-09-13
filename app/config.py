@@ -15,6 +15,7 @@ class Config:
     storage_access_key: str | None
     storage_secret_key: str | None
     storage_bucket: str | None
+    aws_region: str | None
     allowed_document_types: set[str]
     test_connection_string: str | None
     test_host: str | None
@@ -33,6 +34,7 @@ def get_config() -> Config:
         storage_access_key=os.getenv("STORAGE_ACCESS_KEY"),
         storage_secret_key=os.getenv("STORAGE_SECRET_KEY"),
         storage_bucket=os.getenv("STORAGE_BUCKET"),
+        aws_region=os.getenv("AWS_REGION"),
         allowed_document_types={
             "application/pdf",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
