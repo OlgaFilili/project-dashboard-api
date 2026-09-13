@@ -29,10 +29,10 @@ async def test_update_and_delete_doc_success(test_session, test_user, test_stora
 
     test_storage_client.upload_fileobj(
         Fileobj=BytesIO(file_content),
-        Bucket=config.minio_bucket,
+        Bucket=config.storage_bucket,
         Key=s3_key,
         ExtraArgs={"ContentType": content_type})
-    response = test_storage_client.head_object(Bucket=config.minio_bucket, Key=s3_key)
+    response = test_storage_client.head_object(Bucket=config.storage_bucket, Key=s3_key)
     doc_data = Document(
         project_id=project.project_id,
         filename="test_document.docx",
@@ -71,4 +71,4 @@ async def test_update_and_delete_doc_success(test_session, test_user, test_stora
     assert document is None
 
     with pytest.raises(ClientError):
-        test_storage_client.head_object(Bucket=config.minio_bucket, Key=s3_key)
+        test_storage_client.head_object(Bucket=config.storage_bucket, Key=s3_key)
