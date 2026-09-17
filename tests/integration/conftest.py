@@ -26,8 +26,8 @@ def test_storage_client():
     return boto3.client(
         service_name="s3",
         endpoint_url=f"http://{config.test_host}:9000",
-        aws_access_key_id=config.minio_root_user,
-        aws_secret_access_key=config.minio_root_password)
+        aws_access_key_id=config.storage_access_key,
+        aws_secret_access_key=config.storage_secret_key)
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_db():

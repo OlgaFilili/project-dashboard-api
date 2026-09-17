@@ -10,7 +10,6 @@ from app.dashboard.storage_models import FileMetadata, FileUpdateRequest, FileUp
 from app.object_storage.client import storage_client
 
 config = get_config()
-MINIO_BUCKET = config.minio_bucket
 logger = logging.getLogger(__name__)
 
 
@@ -19,7 +18,7 @@ def generate_upload_url(request: FileUploadRequest) -> UploadInfo:
     try:
         upload_url = storage_client.generate_presigned_url(
             'put_object',
-            Params={'Bucket': MINIO_BUCKET, 'Key': s3_key, 'ContentType': request.content_type},
+            Params={'Bucket': config.storage_bucket, 'Key': s3_key, 'ContentType': request.content_type},
             ExpiresIn=3600)
     except ClientError:
         logger.exception("storage_generate_upload_url_failed filename=%s", request.filename)
@@ -33,7 +32,7 @@ def generate_upload_url(request: FileUploadRequest) -> UploadInfo:
 
 def get_file_metadata(s3_key: str) -> FileMetadata:
     try:
-        response = storage_client.head_object(Bucket=MINIO_BUCKET, Key=s3_key)
+        response = storage_client.head_object(Bucket=config.storage_bucket, Key=s3_key)
     except ClientError as exc:
         error_code = exc.response["Error"]["Code"]
 
@@ -51,7 +50,7 @@ def get_file_metadata(s3_key: str) -> FileMetadata:
 
 def download_file(s3_key: str) -> StreamingBody:
     try:
-        response = storage_client.get_object(Bucket=MINIO_BUCKET, Key=s3_key)
+        response = storage_client.get_object(Bucket=config.storage_bucket, Key=s3_key)
     except ClientError:
         logger.exception("storage_download_failed s3_key=%s", s3_key)
         raise StorageError()
@@ -60,7 +59,7 @@ def download_file(s3_key: str) -> StreamingBody:
 
 def delete_file(s3_key: str):
     try:
-        storage_client.delete_object(Bucket=MINIO_BUCKET, Key=s3_key)
+        storage_client.delete_object(Bucket=config.storage_bucket, Key=s3_key)
     except ClientError:
         logger.exception("storage_delete_failed s3_key=%s", s3_key)
         raise StorageError()
@@ -70,7 +69,7 @@ def generate_update_url(request: FileUpdateRequest) -> str:
     try:
         update_url = storage_client.generate_presigned_url(
             'put_object',
-            Params={'Bucket': MINIO_BUCKET, 'Key': request.s3_key, 'ContentType': request.content_type},
+            Params={'Bucket': config.storage_bucket, 'Key': request.s3_key, 'ContentType': request.content_type},
             ExpiresIn=3600)
     except ClientError:
         logger.exception("storage_generate_update_url_failed s3_key=%s", request.s3_key)
@@ -81,7 +80,7 @@ def generate_update_url(request: FileUpdateRequest) -> str:
 def delete_files(s3_keys: list[str]):
     try:
         response = storage_client.delete_objects(
-            Bucket=MINIO_BUCKET,
+            Bucket=config.storage_bucket,
             Delete={"Objects": [{"Key": key} for key in s3_keys]})
         if response.get("Errors"):
             logger.error("Some files were not deleted: %s", response["Errors"])
