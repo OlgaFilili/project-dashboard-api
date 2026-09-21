@@ -81,3 +81,8 @@ async def select_documents_keys_by_project_id(session: AsyncSession, project_id:
 
 async def delete_members_by_project_id(session: AsyncSession, project_id: int) -> None:
     await session.execute(delete(Member).where(Member.project_id == project_id))
+
+
+async def select_membership(session: AsyncSession, project_id: int, user_id: int) -> Member | None:
+    result = await session.execute(select(Member).where(Member.project_id == project_id, Member.user_id == user_id))
+    return result.scalar_one_or_none()

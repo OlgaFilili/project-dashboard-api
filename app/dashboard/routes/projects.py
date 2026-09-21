@@ -7,13 +7,14 @@ from app.dashboard.exceptions import (
     ProjectNotFoundError,
     UserAlreadyHasAccessError,
     UserNotFoundError,
+    UserNotMemberError,
     UserNotOwnerError,
 )
 from app.dashboard.schemas import (
     DocsResponse,
     ProjectCreate,
     ProjectInfo,
-    ProjectInvite,
+    ProjectMembership,
     ProjectResponse,
     ProjectUpdate,
     UserProjects,
@@ -25,6 +26,7 @@ from app.dashboard.service.projects import (
     get_project_documents,
     get_projects,
     insert_project,
+    revoke_membership,
     update_project,
 )
 from app.dashboard.service.security import get_current_user
@@ -81,7 +83,7 @@ async def delete_project(project_id: int, owner: User = Depends(get_current_user
 
 
 @router.post("/project/{project_id}/invite", status_code=200, response_model=dict[str, str])
-async def invite_user(project_id: int, login: ProjectInvite, owner: User = Depends(get_current_user),
+async def invite_user(project_id: int, login: ProjectMembership, owner: User = Depends(get_current_user),
                       async_session: AsyncSession = Depends(get_session)):
     try:
         await add_user_to_project(async_session, owner.id, project_id, login)
@@ -97,6 +99,23 @@ async def invite_user(project_id: int, login: ProjectInvite, owner: User = Depen
     except UserAlreadyHasAccessError:
         raise HTTPException(status_code=409,
                             detail=f"User with login '{login.login}' already has access to the project")
+
+
+@router.delete("/project/{project_id}/revoke", status_code=200, response_model=dict[str, str])
+async def revoke_member(project_id: int, login: ProjectMembership, owner: User = Depends(get_current_user),
+                        async_session: AsyncSession = Depends(get_session)):
+    try:
+        await revoke_membership(async_session, owner.id, project_id, login)
+        return {"detail": f"Membership of user with login '{login.login}' revoked successfully"}
+    except UserNotOwnerError:
+        raise HTTPException(status_code=403, detail="User is not the project owner")
+    except ProjectNotFoundError:
+        raise HTTPException(status_code=404, detail="Project not found")
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail=f"User with login '{login.login}' was not found")
+    except UserNotMemberError:
+        raise HTTPException(status_code=404,
+                            detail=f"User with login '{login.login}' is not a project member")
 
 
 @router.get("/project/{project_id}/documents")

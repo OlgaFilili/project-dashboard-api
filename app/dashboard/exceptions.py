@@ -60,3 +60,7 @@ class UploadedFileNotFoundError(ServiceError):
 
 class FileMetadataMismatchError(ServiceError):
     pass
+
+
+class UserNotMemberError(ServiceError):
+    pass
