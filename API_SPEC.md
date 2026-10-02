@@ -4,7 +4,7 @@
 - Service to create, update, share, and delete projects information (details, attached documents)
 - Retrieval of project details and attached documents
 - Two types of access – owner (creator of the project, can do anything) and participant (user invited to the project, can modify everything (including documents), cannot delete project (but can delete attached documents)
-- Participant access is granted by project owner through the invite endpoint.
+- Participant access is granted by project owner through the invite endpoint, and can be revoked only by owner through the revoke endpoint.
 
 ## Endpoints
 | Method | Path | Description |
@@ -24,6 +24,7 @@
 | PUT | /document/{document_id}/complete | Complete document update |
 | DELETE | /document/{document_id} | Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3) |
 | POST | /project/{project_id}/invite | Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user |
+| DELETE | /project/{project_id}/revoke | Revoke access to the project for a specific user. If the request is not coming from the project's owner, results in error |
 
 ## API Contracts
 1. POST /auth
@@ -405,11 +406,37 @@ Request:
 }
 
 Response: 200 Ok
+{
+  "detail": "User with login 'Olga' invited successfully"
+}
 
 Errors:
 401 Unauthorized - Invalid or expired token.
 403 Forbidden - User is not the project owner.
 404 Not Found - Project not found.
-404 Not Found - User with <login> does not exist.
+404 Not Found - User with <login> was not found.
 409 Conflict - Cannot invite the project owner.
-409 Conflict - User with <login> already has access.
+409 Conflict - User with <login> already has access to the project.
+
+
+16. DELETE /project/{project_id}/revoke - Revoke access to the project for a specific user. If the request is not coming from the project's owner, results in error.
+
+Authorization header:
+Bearer <access_token>
+
+Request:
+{
+  "login": "Bob"
+}
+
+Response: 200 Ok
+{
+  "detail": "Membership of user with login 'Bob' revoked successfully"
+}
+
+Errors:
+401 Unauthorized - Invalid or expired token.
+403 Forbidden - User is not the project owner.
+404 Not Found - Project not found.
+404 Not Found - User with <login> was not found.
+404 Not Found - User with <login> is not a poject member.

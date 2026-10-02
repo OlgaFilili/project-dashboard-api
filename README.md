@@ -24,6 +24,7 @@ A REST API for managing collaborative projects and their related documents.
 - Project creation, update and deletion
 - Project access via owner and participants
 - Project invitations (add user to project)
+- Revoke membership (revoke access to project)
 - Role-based access control (Owner / Participant)
 - Document management with metadata stored in PostgreSQL and files stored in S3-compatible object storage
 
@@ -38,7 +39,8 @@ A REST API for managing collaborative projects and their related documents.
 - `GET /project/{project_id}/info` – Return project’s details, if user has access.  
 - `PUT /project/{project_id}/info` – Update projects details - name, description. Returns the updated project’s info.
 - `DELETE /project/{project_id}` – Delete project, can only be performed by the projects’ owner. Deletes the corresponding  documents.
-- `POST /project/{project_id}/invite` – Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user
+- `POST /project/{project_id}/invite` – Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user.
+- `DELETE /project/{project_id}/revoke` – Revoke access to the project for a specific user. If the request is not coming from the project's owner, results in error
 
 ### Documents
 - `GET /project/{project_id}/documents` – Return all the project's documents.
