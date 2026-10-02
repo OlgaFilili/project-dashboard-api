@@ -13,6 +13,7 @@ from app.dashboard.exceptions import (
     UserAlreadyExistsError,
     UserAlreadyHasAccessError,
     UserNotFoundError,
+    UserNotMemberError,
 )
 from app.dashboard.repository import (
     add_new_project,
@@ -23,6 +24,7 @@ from app.dashboard.repository import (
     select_documents_keys_by_project_id,
     select_member_projects,
     select_members_by_project_id,
+    select_membership,
     select_owned_projects,
     select_user_by_username,
 )
@@ -32,7 +34,7 @@ from app.dashboard.schemas import (
     ProjectCreate,
     ProjectFullInfo,
     ProjectInfo,
-    ProjectInvite,
+    ProjectMembership,
     ProjectResponse,
     ProjectUpdate,
     TokenResponse,
@@ -133,7 +135,7 @@ async def del_project(session: AsyncSession, user_id: int, project_id: int) -> N
             logger.exception("Failed to cleanup project files project_id=%s", project_id)
 
 
-async def add_user_to_project(session: AsyncSession, user_id: int, project_id: int, username: ProjectInvite):
+async def add_user_to_project(session: AsyncSession, user_id: int, project_id: int, username: ProjectMembership):
     project = await get_project_for_owner(session, user_id, project_id)
     user = await select_user_by_username(session, username.login)
     if not user:
@@ -147,6 +149,18 @@ async def add_user_to_project(session: AsyncSession, user_id: int, project_id: i
         project_id=project_id,
         user_id=user.id)
     await insert_member(session, new_participant)
+
+
+async def revoke_membership(session: AsyncSession, user_id: int, project_id: int, membership: ProjectMembership):
+    await get_project_for_owner(session, user_id, project_id)
+    user = await select_user_by_username(session, membership.login)
+    if not user:
+        raise UserNotFoundError()
+    participant = await select_membership(session, project_id, user.id)
+    if not participant:
+        raise UserNotMemberError()
+    await session.delete(participant)
+    await session.commit()
 
 
 async def get_project_documents(session: AsyncSession, user_id: int, project_id: int) -> DocsResponse:

@@ -65,7 +65,7 @@ class ProjectInfo(APIModel):
     owner_id: int
 
 
-class ProjectInvite(APIModel):
+class ProjectMembership(APIModel):
     login: str = Field(min_length=1)
 
 
