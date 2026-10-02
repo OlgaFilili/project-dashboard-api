@@ -1,6 +1,6 @@
 import pytest
 
-from app.dashboard.schemas import ProjectCreate, ProjectInvite
+from app.dashboard.schemas import ProjectCreate, ProjectMembership
 from app.dashboard.service.projects import add_user_to_project, get_projects, insert_project
 
 
@@ -16,7 +16,7 @@ async def test_invite_user_success(test_session, test_user, test_user_2):
 
     assert test_user_project.project_id not in [project.project_id for project in invited_user_projects.projects]
 
-    login = ProjectInvite(login=username)
+    login = ProjectMembership(login=username)
     await add_user_to_project(test_session, user_id, test_user_project.project_id, login)
     invited_user_projects = await get_projects(test_session, invited_user_id)
     project = next(project

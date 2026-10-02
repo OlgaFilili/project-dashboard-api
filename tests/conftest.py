@@ -16,7 +16,6 @@ def sample_project():
         owner_id=1
     )
 
-
 @pytest.fixture
 def project_factory():
     def make_project(**kwargs):

@@ -3,8 +3,14 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from app.dashboard.exceptions import CannotInviteOwnerError, StorageError, UserAlreadyHasAccessError, UserNotFoundError
-from app.dashboard.schemas import ProjectCreate, ProjectInfo, ProjectInvite, ProjectUpdate, UserProjects
+from app.dashboard.exceptions import (
+    CannotInviteOwnerError,
+    StorageError,
+    UserAlreadyHasAccessError,
+    UserNotFoundError,
+    UserNotMemberError,
+)
+from app.dashboard.schemas import ProjectCreate, ProjectInfo, ProjectMembership, ProjectUpdate, UserProjects
 from app.dashboard.service.projects import (
     add_user_to_project,
     del_project,
@@ -12,9 +18,10 @@ from app.dashboard.service.projects import (
     get_project_documents,
     get_projects,
     insert_project,
+    revoke_membership,
     update_project,
 )
-from app.database.models import Document, User
+from app.database.models import Document, Member, User
 
 
 @pytest.mark.asyncio
@@ -304,7 +311,7 @@ async def test_add_user_to_project_success(sample_project, monkeypatch):
         "app.dashboard.service.projects.insert_member",
         fake_insert_member)
 
-    await add_user_to_project(None, user_id=1, project_id=2, username=ProjectInvite(login="Bob"))
+    await add_user_to_project(None, user_id=1, project_id=2, username=ProjectMembership(login="Bob"))
     _, member = fake_insert_member.await_args.args
 
     fake_insert_member.assert_awaited_once()
@@ -328,7 +335,7 @@ async def test_add_user_to_project_user_not_found(sample_project, monkeypatch):
         fake_select_user_by_username)
 
     with pytest.raises(UserNotFoundError):
-        await add_user_to_project(None, user_id=1, project_id=2, username=ProjectInvite(login="Bob"))
+        await add_user_to_project(None, user_id=1, project_id=2, username=ProjectMembership(login="Bob"))
 
 
 @pytest.mark.asyncio
@@ -347,7 +354,7 @@ async def test_add_user_to_project_user_is_owner(sample_user, sample_project, mo
         fake_select_user_by_username)
 
     with pytest.raises(CannotInviteOwnerError):
-        await add_user_to_project(None, user_id=1, project_id=2, username=ProjectInvite(login="Olga"))
+        await add_user_to_project(None, user_id=1, project_id=2, username=ProjectMembership(login="Olga"))
 
 
 @pytest.mark.asyncio
@@ -376,7 +383,7 @@ async def test_add_user_to_project_user_already_member(sample_project, monkeypat
         fake_select_members_by_project_id)
 
     with pytest.raises(UserAlreadyHasAccessError):
-        await add_user_to_project(None, user_id=1, project_id=2, username=ProjectInvite(login="Bob"))
+        await add_user_to_project(None, user_id=1, project_id=2, username=ProjectMembership(login="Bob"))
 
 
 @pytest.mark.asyncio
@@ -426,3 +433,87 @@ async def test_get_project_documents_no_docs(sample_project, document_factory, m
     result = await get_project_documents(None, user_id=1, project_id=2)
 
     assert result.documents == []
+
+
+@pytest.mark.asyncio
+async def test_revoke_membership_success(session, sample_project, monkeypatch):
+    participant = Member(
+        project_id=2,
+        user_id=2,
+        granted_at=datetime(2026, 7, 4, 10, 0, 0))
+
+    async def fake_get_project_for_owner(*args, **kwargs):
+        return sample_project
+
+    async def fake_select_user_by_username(*args, **kwargs):
+        return User(
+            id=2,
+            username="Bob",
+            password_hash="qwe",
+            created_at=datetime(2026, 5, 1, 12, 0, 0))
+
+    async def fake_select_membership(*args, **kwargs):
+        return participant
+
+    monkeypatch.setattr(
+        "app.dashboard.service.projects.get_project_for_owner",
+        fake_get_project_for_owner)
+    monkeypatch.setattr(
+        "app.dashboard.service.projects.select_user_by_username",
+        fake_select_user_by_username)
+    monkeypatch.setattr(
+        "app.dashboard.service.projects.select_membership",
+        fake_select_membership)
+
+    await revoke_membership(session, user_id=1, project_id=2, membership=ProjectMembership(login="Bob"))
+
+    session.delete.assert_awaited_once_with(participant)
+    session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_revoke_membership_user_not_found(session, sample_project, monkeypatch):
+    async def fake_get_project_for_owner(*args, **kwargs):
+        return sample_project
+
+    async def fake_select_user_by_username(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(
+        "app.dashboard.service.projects.get_project_for_owner",
+        fake_get_project_for_owner)
+    monkeypatch.setattr(
+        "app.dashboard.service.projects.select_user_by_username",
+        fake_select_user_by_username)
+
+    with pytest.raises(UserNotFoundError):
+        await revoke_membership(session, user_id=1, project_id=2, membership=ProjectMembership(login="Bob"))
+
+
+@pytest.mark.asyncio
+async def test_revoke_membership_user_not_member(session, sample_project, monkeypatch):
+    async def fake_get_project_for_owner(*args, **kwargs):
+        return sample_project
+
+    async def fake_select_user_by_username(*args, **kwargs):
+        return User(
+            id=2,
+            username="Bob",
+            password_hash="qwe",
+            created_at=datetime(2026, 5, 1, 12, 0, 0))
+
+    async def fake_select_membership(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(
+        "app.dashboard.service.projects.get_project_for_owner",
+        fake_get_project_for_owner)
+    monkeypatch.setattr(
+        "app.dashboard.service.projects.select_user_by_username",
+        fake_select_user_by_username)
+    monkeypatch.setattr(
+        "app.dashboard.service.projects.select_membership",
+        fake_select_membership)
+
+    with pytest.raises(UserNotMemberError):
+        await revoke_membership(session, user_id=1, project_id=2, membership=ProjectMembership(login="Bob"))
