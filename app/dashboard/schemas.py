@@ -131,3 +131,14 @@ class UpdateResponse(APIModel):
 
     content_type: str
     update_url: str
+
+
+class ProjectNewOwnerInfo(APIModel):
+    project_id: int
+    project_name: str
+    new_owner_login: str
+
+
+class DeletionPreview(APIModel):
+    projects_to_delete: list[ProjectInfo] = Field(default_factory=list)
+    projects_to_transfer: list[ProjectNewOwnerInfo] = Field(default_factory=list)

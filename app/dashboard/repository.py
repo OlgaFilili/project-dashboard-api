@@ -86,3 +86,15 @@ async def delete_members_by_project_id(session: AsyncSession, project_id: int) -
 async def select_membership(session: AsyncSession, project_id: int, user_id: int) -> Member | None:
     result = await session.execute(select(Member).where(Member.project_id == project_id, Member.user_id == user_id))
     return result.scalar_one_or_none()
+
+
+async def select_oldest_member_by_project_id(session: AsyncSession, project_id: int) -> Member | None:
+    result = await session.execute(
+        select(Member)
+        .where(Member.project_id == project_id)
+        .order_by(Member.granted_at)
+        .limit(1))
+    return result.scalar_one_or_none()
+
+async def delete_member_by_user_id(session: AsyncSession, user_id: int) -> None:
+    await session.execute(delete(Member).where(Member.user_id == user_id))
