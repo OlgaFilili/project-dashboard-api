@@ -8,6 +8,7 @@ from app.dashboard.exceptions import UnauthorizedError
 from app.dashboard.routes.auth import router as auth_router
 from app.dashboard.routes.docs import router as docs_router
 from app.dashboard.routes.projects import router
+from app.dashboard.routes.users import router as users_router
 from app.database.db import init_db
 from app.logging_config import setup_logging
 from app.object_storage.client import init_storage
@@ -40,3 +41,4 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(docs_router)
+app.include_router(users_router)

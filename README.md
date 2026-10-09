@@ -26,12 +26,15 @@ A REST API for managing collaborative projects and their related documents.
 - Project invitations (add user to project)
 - Revoke membership (revoke access to project)
 - Role-based access control (Owner / Participant)
+- User deletion, including ownership transfer for projects with participants and deletion of projects without participants.
 - Document management with metadata stored in PostgreSQL and files stored in S3-compatible object storage
 
 ## API Overview
-### Auth
+### Users
 - `POST /auth` – Create user. (login, password, repeat password) 
 - `POST /login` – Login into service (login, password). Authenticate user and return JWT token
+- `GET /user/me/deletion-preview` - Projects' consequences preview of user deletion, including projects to be deleted and projects to be transferred to another owner
+- `DELETE /user/me` - Delete the current user. Projects without other members are deleted along with their documents. Projects with members are retained and transferred to the earliest-added member
 
 ### Projects
 - `POST /projects` – Create project from details (name, description). Automatically gives access to created project to user, making him the owner.
@@ -68,6 +71,7 @@ Unit tests cover the service layer and helper functions, including:
 - Authentication
 - Project management
 - Document management
+- User management
 - Service helper functions
 
 Integration tests cover the interaction between the API and the application's infrastructure:
@@ -113,12 +117,14 @@ http://localhost:8000
 │     │     ├── routes/
 │     │     │     ├── auth.py
 │     │     │     ├── docs.py
-│     │     │     └── projects.py
+│     │     │     ├── projects.py
+│     │     │     └── users.py
 │     │     └── service/
 │     │     │     ├── docs.py
 │     │     │     ├── helpers.py
 │     │     │     ├── projects.py
-│     │     │     └── security.py
+│     │     │     ├── security.py
+│     │     │     └── users.py
 │     │     ├── exceptions.py
 │     │     ├── repository.py
 │     │     ├── schemas.py
@@ -143,7 +149,8 @@ http://localhost:8000
 │     ├── test_docs.py
 │     ├── test_projects.py
 │     ├── test_schemas.py
-│     └── test_service_helpers.py
+│     ├── test_service_helpers.py
+│     └── test_users.py
 ├── API_SPEC.md
 ├── docker-compose.yml
 ├── Dockerfile

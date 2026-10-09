@@ -5,6 +5,7 @@
 - Retrieval of project details and attached documents
 - Two types of access – owner (creator of the project, can do anything) and participant (user invited to the project, can modify everything (including documents), cannot delete project (but can delete attached documents)
 - Participant access is granted by project owner through the invite endpoint, and can be revoked only by owner through the revoke endpoint.
+- User deletion, including ownership transfer for projects with participants and deletion of projects without participants.
 
 ## Endpoints
 | Method | Path | Description |
@@ -25,6 +26,8 @@
 | DELETE | /document/{document_id} | Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3) |
 | POST | /project/{project_id}/invite | Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user |
 | DELETE | /project/{project_id}/revoke | Revoke access to the project for a specific user. If the request is not coming from the project's owner, results in error |
+| GET | /user/me/deletion-preview | Projects' consequences preview of user deletion, including projects to be deleted and projects to be transferred to another owner |
+| DELETE | /user/me | Delete the current user. Projects without other members are deleted along with their documents. Projects with members are retained and transferred to the earliest-added member |
 
 ## API Contracts
 1. POST /auth
@@ -440,3 +443,43 @@ Errors:
 404 Not Found - Project not found.
 404 Not Found - User with <login> was not found.
 404 Not Found - User with <login> is not a poject member.
+
+
+16. GET /user/me/deletion-preview
+
+Authorization header:
+Bearer <access_token>
+
+Response: 200 OK
+{
+  "projects_to_delete":[
+    {
+      "project_id": 1,
+      "name": "Project’s name",
+      "description": "Project’s description",
+      "created_at": "2026-06-18T16:22:56Z",
+	  "owner_id": 1
+    }
+  ]
+  "projects_to_transfer": [
+	{
+	  "project_id": 15,
+	  "project_name": "Transferred Project",
+	  "new_owner_login": "Bob"
+	}
+  ]
+}
+
+Errors:
+401 Unauthorized - Invalid or expired token.
+
+
+17. DELETE /user/me
+
+Authorization header:
+Bearer <access_token>
+
+Response: 204 No Content
+
+Errors:
+401 Unauthorized - Invalid or expired token.
