@@ -21,7 +21,7 @@ from app.dashboard.service.projects import (
     revoke_membership,
     update_project,
 )
-from app.database.models import Document, Member, User
+from app.database.models import DocVersion, Member, User
 
 
 @pytest.mark.asyncio
@@ -69,14 +69,14 @@ async def test_get_projects_success(session, project_factory, monkeypatch):
     async def fake_select_documents_by_project_id(session, project_id):
         if project_id == 2:
             return [
-                Document(
-                    id=10,
-                    project_id=2,
+                DocVersion(
+                    doc_id=10,
+                    version_id=2,
                     filename="a.pdf",
                     s3_key="key1",
                     file_size=100,
                     content_type="application/pdf",
-                    uploaded_at=datetime(2026, 6, 5, 10, 0, 0))]
+                    created_at=datetime(2026, 6, 5, 10, 0, 0))]
         return []
 
     monkeypatch.setattr(
@@ -392,14 +392,15 @@ async def test_get_project_documents_success(sample_project, document_factory, m
         return sample_project
 
     async def fake_select_documents_by_project_id(*args, **kwargs):
-        return [document_factory(id=3),
+        return [document_factory(doc_id=3),
                 document_factory(
-                    id=4,
+                    doc_id=4,
+                    version_id=2,
                     filename="report.docx",
                     s3_key="report_s3_key",
                     content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     file_size=6400,
-                    uploaded_at=datetime(2026, 5, 31, 12, 49, 57))]
+                    created_at=datetime(2026, 5, 31, 12, 49, 57))]
 
     monkeypatch.setattr(
         "app.dashboard.service.projects.get_project_or_403",

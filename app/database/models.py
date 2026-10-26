@@ -52,19 +52,39 @@ class Document(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     project_id: Mapped[int] = mapped_column(ForeignKey('projects.id'), nullable=False)
-    filename: Mapped[str] = mapped_column(String(255), nullable=False)
-    s3_key: Mapped[str] = mapped_column(String(512), nullable=False)
-    file_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    version_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Define a relationship to the Project model
     project: Mapped[Project] = relationship(
         back_populates="documents"
     )
+    # Define a relationship to the Version model
+    versions: Mapped[list["DocVersion"]] = relationship(
+        back_populates="document", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
-        return f"Document(doc_id={self.id!r}, filename={self.filename!r})"
+        return f"Document(doc_id={self.id}, current_version_id={self.version_id})"
+
+
+class DocVersion(Base):
+    __tablename__ = "doc_versions"
+
+    doc_id: Mapped[int] = mapped_column(Integer, ForeignKey('project_docs.id'), primary_key=True)
+    version_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    s3_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    file_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+    # Define a relationship to the Document model
+    document: Mapped[Document] = relationship(
+        back_populates="versions"
+    )
+
+    def __repr__(self) -> str:
+        return f"Document version(doc_id={self.doc_id}, version_number={self.version_id}, filename={self.filename!r})"
 
 
 class Member(Base):

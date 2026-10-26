@@ -6,6 +6,7 @@ A REST API for managing collaborative projects and their related documents.
 - Python 3.13
 - FastAPI
 - SQLAlchemy 2.x (async ORM)
+- Alembic for database migrations
 - asyncpg
 - PostgreSQL 14
 - MinIO (S3-compatible object storage)
@@ -26,8 +27,9 @@ A REST API for managing collaborative projects and their related documents.
 - Project invitations (add user to project)
 - Revoke membership (revoke access to project)
 - Role-based access control (Owner / Participant)
-- User deletion, including ownership transfer for projects with participants and deletion of projects without participants.
+- User deletion, including ownership transfer for projects with participants and deletion of projects without participants
 - Document management with metadata stored in PostgreSQL and files stored in S3-compatible object storage
+- Document versioning with previous versions preserved in the database and object storage
 
 ## API Overview
 ### Users
@@ -41,29 +43,38 @@ A REST API for managing collaborative projects and their related documents.
 - `GET /projects` – Get all projects, accessible for a user. Returns list of projects full info(details + documents).
 - `GET /project/{project_id}/info` – Return project’s details, if user has access.  
 - `PUT /project/{project_id}/info` – Update projects details - name, description. Returns the updated project’s info.
-- `DELETE /project/{project_id}` – Delete project, can only be performed by the projects’ owner. Deletes the corresponding  documents.
+- `DELETE /project/{project_id}` – Delete project, can only be performed by the projects’ owner. Delete its documents, and all documents’ versions.
 - `POST /project/{project_id}/invite` – Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user.
 - `DELETE /project/{project_id}/revoke` – Revoke access to the project for a specific user. If the request is not coming from the project's owner, results in error
 
 ### Documents
-- `GET /project/{project_id}/documents` – Return all the project's documents.
+- `GET /project/{project_id}/documents` – Return all the project’s documents, represented by their current versions.
 - `POST /project/{project_id}/documents` – Generate presigned URLs for direct document/documents upload to storage.
 - `POST /project/{project_id}/documents/complete` – Complete document/documents upload for a specific project.
-- `GET /document/{document_id}` – Download document, if the user has access to the corresponding project.
-- `PUT /document/{document_id}` – Generate a presigned URL for replacing the content of an existing document in storage.
+- `GET /document/{document_id}` – Download document (the current version), if the user has access to the corresponding project.
+- `PUT /document/{document_id}` – Generate a presigned URL for uploading a new version of an existing document.
 - `PUT /document/{document_id}/complete` – Complete document update.
-- `DELETE /document/{document_id}` – Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3).
+- `DELETE /document/{document_id}` – Delete the document, its version history, and all associated files from storage. Users with participant access can also delete documents.
 
 See API_SPEC.md for the complete API specification.
 
 ## Database Design
 The database schema is designed to separate entities and avoid unnecessary data duplication.
 
-- User information is stored separately in the `Users` table.
-- Project ownership is represented through the `owner_id` field in the `Projects` table. The owner is not duplicated in the project participants table.
-- Project participants are stored separately in the `Project_Members` table, which represents user access to projects and supports role-based permissions.
-- Documents are linked to projects through the `Documents` table. Only document metadata is stored in PostgreSQL, while the actual files are stored in S3-compatible object storage.
+- User information is stored separately in the `users` table.
+- Project ownership is represented through the `owner_id` field in the `projects` table. The owner is not duplicated in the project participants table.
+- Project participants are stored separately in the `project_members` table, which represents user access to projects and supports role-based permissions.
+- Documents are linked to projects through the `project_docs` table. Only document metadata is stored in PostgreSQL, while the actual files are stored in S3-compatible object storage.
+- Document version history is stored in the `doc_versions` table. Each document references its current version in `project_docs` table, while previous versions are preserved in the database and object storage.
 - Foreign key relationships are used to maintain consistency between related entities.
+- Alembic manages database schema changes through versioned migrations.
+
+## Document Versioning
+- Updating a document creates a new version while preserving previous versions in the database and object storage.
+- Each document references its current version, which is updated after the new version is successfully uploaded and the update is completed.
+- Deleting a document removes its database record, version history, and all associated files from object storage.
+- Versioning is managed at the application level; storage-level versioning is not used.
+- Previous versions are preserved but are not currently accessible through the API. Version retrieval and restoration are not implemented.
 
 ## Testing
 The project contains both unit and integration tests implemented with pytest and pytest-asyncio.
@@ -112,6 +123,13 @@ http://localhost:8000
 .
 ├── .github/workflows/
 │     └── ci.yml
+├── alembic/
+│     ├── versions/
+│     │     ├── 48cbc649fd61_initial_schema.py
+│     │     └── 94173445482a_add_document_versioning.py
+│     ├── env.py
+│     ├── README
+│     └── script.py.mako
 ├── app/
 │     ├── dashboard/
 │     │     ├── routes/
@@ -151,13 +169,16 @@ http://localhost:8000
 │     ├── test_schemas.py
 │     ├── test_service_helpers.py
 │     └── test_users.py
+├── .dockerignore
+├── .gitignore
+├── alembic.ini
 ├── API_SPEC.md
 ├── docker-compose.yml
 ├── Dockerfile
 ├── pyproject.toml
 ├── README.md
 ├── uv.lock
-└── .env
+└── .env                                  # Local environment configuration (not committed)
 ```
 
 ## Notes

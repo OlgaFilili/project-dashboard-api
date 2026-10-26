@@ -3,7 +3,7 @@ import pytest
 from app.dashboard.exceptions import DocumentNotFoundError, NoAccessError, ProjectNotFoundError, UserNotOwnerError
 from app.dashboard.service.helpers import (
     get_doc_or_403,
-    get_doc_or_404,
+    get_doc_project_id_or_404,
     get_project_for_owner,
     get_project_or_403,
     get_project_or_404,
@@ -115,46 +115,52 @@ async def test_get_project_for_owner_user_no_owner(sample_project, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_doc_or_404_success(sample_document, monkeypatch):
-    async def fake_select_document_by_id(*args, **kwargs):
-        return sample_document
+async def test_get_doc_project_id_or_404_success(monkeypatch):
+    async def fake_select_project_id_by_doc_id(*args, **kwargs):
+        return 2
 
     monkeypatch.setattr(
-        "app.dashboard.service.helpers.select_document_by_id",
-        fake_select_document_by_id)
+        "app.dashboard.service.helpers.select_project_id_by_doc_id",
+        fake_select_project_id_by_doc_id)
 
-    result = await get_doc_or_404(None, doc_id=3)
+    project_id = await get_doc_project_id_or_404(None, 3)
 
-    assert result is sample_document
+    assert project_id == 2
 
 
 @pytest.mark.asyncio
-async def test_get_doc_or_404_document_not_found(monkeypatch):
-    async def fake_select_document_by_id(*args, **kwargs):
+async def test_get_doc_project_id_or_404_document_not_found(monkeypatch):
+    async def fake_select_project_id_by_doc_id(*args, **kwargs):
         return None
 
     monkeypatch.setattr(
-        "app.dashboard.service.helpers.select_document_by_id",
-        fake_select_document_by_id)
+        "app.dashboard.service.helpers.select_project_id_by_doc_id",
+        fake_select_project_id_by_doc_id)
 
     with pytest.raises(DocumentNotFoundError):
-        await get_doc_or_404(None, doc_id=10)
+        await get_doc_project_id_or_404(None, doc_id=10)
 
 
 @pytest.mark.asyncio
 async def test_get_doc_or_403_success(sample_document, sample_project, monkeypatch):
-    async def fake_get_doc_or_404(*args, **kwargs):
-        return sample_document
+    async def fake_get_doc_project_id_or_404(*args, **kwargs):
+        return 2
 
     async def fake_get_project_or_403(*args, **kwargs):
         return sample_project
 
+    async def fake_select_document_by_id(*args, **kwargs):
+        return sample_document
+
     monkeypatch.setattr(
-        "app.dashboard.service.helpers.get_doc_or_404",
-        fake_get_doc_or_404)
+        "app.dashboard.service.helpers.get_doc_project_id_or_404",
+        fake_get_doc_project_id_or_404)
     monkeypatch.setattr(
         "app.dashboard.service.helpers.get_project_or_403",
         fake_get_project_or_403)
+    monkeypatch.setattr(
+        "app.dashboard.service.helpers.select_document_by_id",
+        fake_select_document_by_id)
 
     result = await get_doc_or_403(None, user_id=1, doc_id=3)
 

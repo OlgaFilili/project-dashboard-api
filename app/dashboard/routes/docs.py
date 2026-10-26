@@ -15,10 +15,9 @@ from app.dashboard.exceptions import (
 from app.dashboard.schemas import (
     DocResponse,
     DocsResponse,
-    FileRequest,
+    StorageRequest,
     StoragesRequest,
-    UpdateRequest,
-    UpdateResponse,
+    UploadResponse,
     UploadsRequest,
     UploadsResponse,
 )
@@ -39,7 +38,7 @@ router = APIRouter(tags=["documents"])
 
 @router.post("/project/{project_id}/documents", response_model=UploadsResponse, status_code=200)
 async def upload_documents_request(project_id: int, request: UploadsRequest, user: User = Depends(get_current_user),
-                           async_session: AsyncSession = Depends(get_session)) -> UploadsResponse:
+                                   async_session: AsyncSession = Depends(get_session)) -> UploadsResponse:
     try:
         return await prepare_for_uploads(async_session, project_id, user.id, request)
     except NoAccessError:
@@ -59,13 +58,8 @@ async def upload_documents(project_id: int, request: StoragesRequest, user: User
         raise HTTPException(status_code=403, detail="User has no access to the project")
     except ProjectNotFoundError:
         raise HTTPException(status_code=404, detail="Project not found")
-    except UnsupportedFileTypeError:
-        raise HTTPException(status_code=415, detail="File type not supported")
     except UploadedFileNotFoundError:
         raise HTTPException(status_code=400, detail="File upload was not completed")
-    except FileMetadataMismatchError:
-        raise HTTPException(status_code=409, detail="Uploaded file metadata mismatch")
-
 
 
 @router.get("/document/{document_id}", status_code=200, response_class=StreamingResponse,
@@ -95,21 +89,19 @@ async def delete_document(document_id: int, user: User = Depends(get_current_use
         raise HTTPException(status_code=404, detail="Document not found")
 
 
-@router.put("/document/{document_id}", status_code=200, response_model=UpdateResponse)
-async def update_document_request(document_id: int, request: UpdateRequest, user: User = Depends(get_current_user),
-                                  async_session: AsyncSession = Depends(get_session)) -> UpdateResponse:
+@router.put("/document/{document_id}", status_code=200, response_model=UploadResponse)
+async def update_document_request(document_id: int, user: User = Depends(get_current_user),
+                                  async_session: AsyncSession = Depends(get_session)) -> UploadResponse:
     try:
-        return await prepare_for_update(async_session, document_id, user.id, request.content_type)
+        return await prepare_for_update(async_session, document_id, user.id)
     except DocumentNotFoundError:
         raise HTTPException(status_code=404, detail="Document not found")
     except NoAccessError:
         raise HTTPException(status_code=403, detail="User has no access to the corresponding project")
-    except UnsupportedFileTypeError:
-        raise HTTPException(status_code=415, detail="File type not supported")
 
 
 @router.put("/document/{document_id}/complete", response_model=DocResponse, status_code=200)
-async def update_document(document_id: int, request: FileRequest, user: User = Depends(get_current_user),
+async def update_document(document_id: int, request: StorageRequest, user: User = Depends(get_current_user),
                           async_session: AsyncSession = Depends(get_session)) -> DocResponse:
     try:
         return await put_document(async_session, document_id, user.id, request)
@@ -117,7 +109,7 @@ async def update_document(document_id: int, request: FileRequest, user: User = D
         raise HTTPException(status_code=404, detail="Document not found")
     except NoAccessError:
         raise HTTPException(status_code=403, detail="User has no access to the corresponding project")
-    except UnsupportedFileTypeError:
-        raise HTTPException(status_code=415, detail="File type not supported")
+    except UploadedFileNotFoundError:
+        raise HTTPException(status_code=400, detail="File update was not completed")
     except FileMetadataMismatchError:
         raise HTTPException(status_code=409, detail="Updated file metadata mismatch")

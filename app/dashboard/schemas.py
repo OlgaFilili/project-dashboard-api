@@ -69,13 +69,22 @@ class ProjectMembership(APIModel):
     login: str = Field(min_length=1)
 
 
+class UploadDocInfo(APIModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    filename: str
+    s3_key: str
+    size: int = Field(validation_alias="file_size")
+    content_type: str
+
+
 class DocResponse(APIModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
-    document_id: int = Field(validation_alias="id")
+    document_id: int = Field(validation_alias="doc_id")
     filename: str
     size: int = Field(validation_alias="file_size")
-    uploaded_at: datetime
+    created_at: datetime
 
 
 class DocsResponse(APIModel):
@@ -115,22 +124,10 @@ class UploadsResponse(APIModel):
 class StorageRequest(APIModel):
     filename: str
     s3_key: str
-    content_type: str
 
 
 class StoragesRequest(APIModel):
     files: list[StorageRequest] = Field(default_factory=list)
-
-
-class UpdateRequest(APIModel):
-    content_type: str
-
-
-class UpdateResponse(APIModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
-
-    content_type: str
-    update_url: str
 
 
 class ProjectNewOwnerInfo(APIModel):

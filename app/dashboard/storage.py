@@ -6,14 +6,14 @@ from botocore.response import StreamingBody
 
 from app.config import get_config
 from app.dashboard.exceptions import StorageError, UploadedFileNotFoundError
-from app.dashboard.storage_models import FileMetadata, FileUpdateRequest, FileUploadRequest, UploadInfo
+from app.dashboard.storage_models import FileMetadata, FileUploadRequest, UploadInfo
 from app.object_storage.client import storage_client
 
 config = get_config()
 logger = logging.getLogger(__name__)
 
 
-def generate_upload_url(request: FileUploadRequest) -> UploadInfo:
+def generate_url(request: FileUploadRequest) -> UploadInfo:
     s3_key = str(uuid4())
     try:
         upload_url = storage_client.generate_presigned_url(
@@ -55,26 +55,6 @@ def download_file(s3_key: str) -> StreamingBody:
         logger.exception("storage_download_failed s3_key=%s", s3_key)
         raise StorageError()
     return response["Body"]
-
-
-def delete_file(s3_key: str):
-    try:
-        storage_client.delete_object(Bucket=config.storage_bucket, Key=s3_key)
-    except ClientError:
-        logger.exception("storage_delete_failed s3_key=%s", s3_key)
-        raise StorageError()
-
-
-def generate_update_url(request: FileUpdateRequest) -> str:
-    try:
-        update_url = storage_client.generate_presigned_url(
-            'put_object',
-            Params={'Bucket': config.storage_bucket, 'Key': request.s3_key, 'ContentType': request.content_type},
-            ExpiresIn=3600)
-    except ClientError:
-        logger.exception("storage_generate_update_url_failed s3_key=%s", request.s3_key)
-        raise StorageError()
-    return update_url
 
 
 def delete_files(s3_keys: list[str]):
