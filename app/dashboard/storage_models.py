@@ -27,9 +27,3 @@ class UploadedFileInfo:
     s3_key: str
     content_type: str
     file_size: int
-
-
-@dataclass
-class FileUpdateRequest:
-    s3_key: str
-    content_type: str
