@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.database.models import Document, Project, User
+from app.database.models import Document, DocVersion, Project, User
 
 
 @pytest.fixture
@@ -45,30 +45,38 @@ def sample_user():
     )
 
 @pytest.fixture
-def sample_document():
+def sample_doc_info():
     return Document(
         id=3,
-        project_id=2,
+        version_id=1,
+        project_id=2
+    )
+
+@pytest.fixture
+def sample_document():
+    return DocVersion(
+        doc_id=3,
+        version_id=1,
         filename="file.pdf",
         s3_key="file_s3_key",
         content_type="application/pdf",
         file_size= 6400,
-        uploaded_at=datetime(2026, 6, 2, 16, 49, 27)
+        created_at=datetime(2026, 6, 2, 16, 49, 27)
     )
 
 @pytest.fixture
 def document_factory():
     def make_document(**kwargs):
         data = {
-            "id": 1,
-            "project_id": 2,
+            "doc_id": 1,
+            "version_id": 1,
             "filename": "spec.pdf",
             "s3_key": "spec_s3_key",
             "file_size": 120,
             "content_type": "application/pdf",
-            "uploaded_at": datetime(2026, 6, 4, 13, 25, 8)
+            "created_at": datetime(2026, 6, 4, 13, 25, 8)
         }
         data.update(kwargs)
-        return Document(**data)
+        return DocVersion(**data)
 
     return make_document
