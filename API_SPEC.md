@@ -3,6 +3,7 @@
 ## Scope
 - Service to create, update, share, and delete projects information (details, attached documents)
 - Retrieval of project details and attached documents
+- Document updates create new versions while preserving previous versions. Deleting a document removes its version history and all associated files from storage
 - Two types of access – owner (creator of the project, can do anything) and participant (user invited to the project, can modify everything (including documents), cannot delete project (but can delete attached documents)
 - Participant access is granted by project owner through the invite endpoint, and can be revoked only by owner through the revoke endpoint.
 - User deletion, including ownership transfer for projects with participants and deletion of projects without participants.
@@ -16,14 +17,14 @@
 | GET | /projects | Get all projects, accessible for a user. Returns list of projects full info(details + documents) |
 | GET | /project/{project_id}/info | Return project’s details, if user has access |
 | PUT | /project/{project_id}/info | Update projects details - name, description. Returns the updated project’s info |
-| DELETE | /project/{project_id} | Delete project, can only be performed by the projects’ owner. Deletes the corresponding  documents |
-| GET | /project/{project_id}/documents | Return all the project's documents |
+| DELETE | /project/{project_id} | Delete project, can only be performed by the projects’ owner. Delete its documents, and all documents’ versions |
+| GET | /project/{project_id}/documents | Return all the project’s documents, represented by their current versions |
 | POST | /project/{project_id}/documents | Generate presigned URLs for direct document/documents upload to storage |
 | POST | /project/{project_id}/documents/complete | Complete document/documents upload |
-| GET | /document/{document_id} | Download document, if the user has access to the corresponding project |
-| PUT | /document/{document_id} | Generate a presigned URL for replacing the content of an existing document in storage |
+| GET | /document/{document_id} | Download document (the current version), if the user has access to the corresponding project |
+| PUT | /document/{document_id} | Generate a presigned URL for uploading a new version of an existing document |
 | PUT | /document/{document_id}/complete | Complete document update |
-| DELETE | /document/{document_id} | Delete document and remove it from the corresponding project. User with participant role can do this. Removes document from system and deletes file from storage (S3) |
+| DELETE | /document/{document_id} | Delete the document, its version history, and all associated files from storage. Users with participant access can also delete documents |
 | POST | /project/{project_id}/invite | Grant access to the project for a specific user. If the request is not coming from the project's owner, results in error. Granting access gives participant permissions to receiving user |
 | DELETE | /project/{project_id}/revoke | Revoke access to the project for a specific user. If the request is not coming from the project's owner, results in error |
 | GET | /user/me/deletion-preview | Projects' consequences preview of user deletion, including projects to be deleted and projects to be transferred to another owner |
@@ -109,7 +110,7 @@ Response: 200 OK
 		  "document_id": 15,
 		  "filename": "report.pdf",
 		  "size": 2048,
-		  "uploaded_at": "2026-06-19T12:38:19Z"
+		  "created_at": "2026-06-19T12:38:19Z"
 		}
 	  ]
     }
@@ -184,7 +185,7 @@ Errors:
 404 Not Found - Project not found.
 
 
-8. GET /project/{project_id}/documents
+8. GET /project/{project_id}/documents - Return all the project’s documents, represented by their current versions
 
 Authorization header:
 Bearer <access_token>
@@ -196,7 +197,7 @@ Response: 200 OK
 	  "document_id": 15,
 	  "filename": "report.pdf",
 	  "size": 2048,
-	  "uploaded_at": "2026-06-19T12:38:19Z"
+	  "created_at": "2026-06-19T12:38:19Z"
 	}
   ]
 }
@@ -238,14 +239,14 @@ Response: 200 OK
     {
       "filename": "spec.pdf",
       "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd15",
+      "content_type": "application/pdf",
       "upload_url": "<presigned-upload-url>",
-      "content_type": "application/pdf"
     },
 	{
       "filename": "report.docx",
       "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd16",
-      "upload_url": "<presigned-upload-url>",
-      "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	  "upload_url": "<presigned-upload-url>",
     }
   ]
 }
@@ -257,7 +258,7 @@ Errors:
 415 Unsupported Media Type - File type not supported.
 
 
-10. POST /project/{project_id}/documents/complete - Confirm uploaded files and creates corresponding document records in the database.
+10. POST /project/{project_id}/documents/complete - Confirm uploaded files and creates corresponding document records in the database
 
 Authorization header:
 Bearer <access_token>
@@ -270,13 +271,11 @@ Request:
   "files": [
     {
       "filename": "spec.pdf",
-      "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd15",
-      "content_type": "application/pdf"
+      "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd15"
     },
 	{
       "filename": "report.docx",
-      "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd16",
-      "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd16"
     }
   ]
 }
@@ -288,13 +287,13 @@ Response: 201 Created
 	  "document_id": 2, 
 	  "filename": "spec.pdf",
 	  "size": 2048,
-	  "uploaded_at": "2026-06-19T17:16:23Z"
+	  "created_at": "2026-06-19T17:16:23Z"
     },
 	{
 	  "document_id": 3, 
 	  "filename": "report.docx",
 	  "size": 8192,
-	  "uploaded_at": "2026-06-19T17:16:57Z"
+	  "created_at": "2026-06-19T17:16:57Z"
     }
   ]
 }
@@ -304,16 +303,17 @@ Errors:
 403 Forbidden - User has no access to the project.
 404 Not Found - Project not found.
 400 Bad Request - Uploaded file was not found in storage.
-409 Conflict - Uploaded file metadata mismatch.
-415 Unsupported Media Type - File type not supported.
 
 
-11. GET /document/{document_id} - Download document, if the user has access to the corresponding project
+11. GET /document/{document_id} - Download document (the current version), if the user has access to the corresponding project
 
 Authorization header:
 Bearer <access_token>
 
 Response: 200 Ok
+{
+	"description": "Binary stream"
+}
 Binary stream
 Headers: Content-Type, Content-Disposition
 
@@ -323,7 +323,7 @@ Errors:
 404 Not Found - Document not found.
 
 
-12. PUT /document/{document_id} - Generate a presigned URL for replacing the content of an existing document in storage
+12. PUT /document/{document_id} - Generate a presigned URL for uploading a new version of an existing document
 
 Authorization header:
 Bearer <access_token>
@@ -334,22 +334,18 @@ Constraints:
 Note:
 - The client should upload the updated file directly to the provided storage URL before calling /document/{document_id}/complete.
 
-Request:
-{
-  "content_type": "application/pdf"
-}
-
 Response: 200 OK
 {
-  "content_type": "application/pdf",
-  "update_url": "<presigned-update-url>"
+  "filename": "report.docx",
+  "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd16",
+  "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "upload_url": "<presigned-update-url>"
 }
 
 Errors:
 401 Unauthorized - Invalid or expired token.
 403 Forbidden - User has no access to the corresponding project.
 404 Not Found - Document not found.
-415 Unsupported Media Type - File type not supported.
 
 
 13. PUT /document/{document_id}/complete - Updates document metadata after the file content has been replaced in storage
@@ -358,34 +354,31 @@ Authorization header:
 Bearer <access_token>
 
 Constraints:
-- Only file with supported content types (.pdf and .docx) are accepted.
-
-Note:
-- The document ID, uploaded_at timestamp, and storage key remain unchanged.
+- Only file with content type matching the document's previous version (.pdf or .docx) is accepted.
 
 Request:
 {
-  "filename": "spec_new.pdf",
-  "content_type": "application/pdf"
+  "filename": "report_new.docx",
+  "s3_key": "88f42899-d34a-459c-b9cf-5e610972fd16"
 }
 
 Response: 200 OK
 {
   "document_id": <document_id>, 
-  "filename": "spec_new.pdf",
+  "filename": "report_new.docx",
   "size": 4096,
-  "uploaded_at": "2026-06-19T18:08:37Z"
+  "created_at": "2026-06-19T18:08:37Z"
 }
 
 Errors:
 401 Unauthorized - Invalid or expired token.
 403 Forbidden - User has no access to the corresponding project.
 404 Not Found - Document not found.
+400 Bad Request - Updated file was not found in storage.
 409 Conflict - Updated file metadata mismatch.
-415 Unsupported Media Type - File type not supported.
 
 
-14. DELETE /document/{document_id}
+14. DELETE /document/{document_id} - Delete the document, its version history, and all associated files from storage. Users with participant access can also delete documents
 
 Authorization header:
 Bearer <access_token>
